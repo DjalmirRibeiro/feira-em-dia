@@ -394,3 +394,48 @@ na implementação, antes de escolher os modelos.
   e total dos exemplos. Verificação de sintaxe dos módulos e do service worker.
 - Verificação no navegador: exemplos, edição, exclusão, totais e fechamento no histórico.
 - Instalação e permissões em Android/iOS físicos ainda precisam ser validadas.
+
+## 14. Referências incorporadas e segunda entrega — 12/11/2026
+
+Referências de comportamento consultadas nos sites dos produtos; não houve acesso
+ao código, à base de produtos ou testes internos desses aplicativos. Usar padrões
+de interação como referência, preservando a identidade e os textos do Feira em Dia.
+
+| Referência | Decisão no projeto |
+|---|---|
+| GroceryBudget — https://grocerybudget.app/ | Manter total acessível durante a compra; próxima etapa de foto terá revisão de produto, unidade e preço antes de incluir |
+| Listonic — https://listonic.com/features/total-cost | Separar intenção de compra do carrinho, com pendências e preços históricos explicitamente estimados |
+| KitchenPal — https://kitchenpalapp.com/en/faqs/kitchen.html | Usar revisão de candidatos identificados na foto e edição rápida antes de salvar |
+| NoWaste — https://www.nowasteapp.com/home/ | Próxima etapa de estoque usará local, saldo, lote e validade; consumo e descarte terão ações distintas |
+| The Pantry — https://thepantry.app/ | Conectar consumo registrado à reposição, com acesso pela PWA e alternativas à digitação |
+| Bring! — https://www.getbring.com/ | Priorizar poucos toques, identificação visual e acesso fácil às listas; manter textos grandes |
+
+### Entregue na versão 0.2.0
+
+- Lista planejada separada dos produtos efetivamente colocados no carrinho.
+- Abas “Falta comprar” e “No carrinho”, com contagem de produtos pendentes.
+- Preço opcional ao planejar; preço atual obrigatório ao colocar no carrinho.
+- Atendimento parcial por unidade, peso ou volume, sem permitir quantidade acima
+  do planejado sem edição prévia. Excluir do carrinho devolve a quantidade à lista.
+- Ação “Não levar agora” dispensa o saldo apenas nesta compra e permite reativá-lo.
+- “O que falta?” funciona por regras locais; não depende de IA.
+- Total fixo na tela de compra, com quantidade de produtos ainda pendentes.
+- Histórico guarda itens comprados, preço pago e planejamento, inclusive pendências.
+- Reutilizar histórico cria planejamento integral com novos identificadores e
+  carrinho vazio. O último preço pago serve de referência, sempre revisável.
+- Exemplos passam a usar chave de armazenamento própria, com entrada e saída
+  explícitas; os dados pessoais não são substituídos ao carregar demonstração.
+- Migração dos dados v1 preserva carrinho/histórico e mantém uma cópia local prévia.
+- Formulários em diálogos, mensagens de erro dentro deles e botões acessíveis.
+
+### Verificação e próximos passos
+
+Onze testes automatizados cobrem cálculos, atendimento parcial, quantidades
+fracionárias, edição vinculada, remoção, dispensas, reutilização e migração.
+Fluxos de compra parcial, recusa de excesso, exclusão/desfazer, persistência,
+finalização com pendências e novo planejamento foram verificados no navegador.
+
+Próxima entrega prioritária: catálogo pessoal e captura de foto real com revisão.
+Organizar persistência de fotos em IndexedDB antes de salvá-las; depois integrar OCR
+e IA conforme a seção 12. Não exibir botões de câmera/voz como funcionais antes de
+essas capacidades estarem disponíveis. Estoque e previsões seguem na sequência.

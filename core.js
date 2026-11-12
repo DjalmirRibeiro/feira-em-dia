@@ -22,3 +22,45 @@ export const exemplos = () => [
   { name: 'Leite integral · 1 litro', price: '5,20', quantity: '3', unit: 'un' },
   { name: 'Banana prata', price: '6,90', quantity: '1,5', unit: 'kg' }
 ].map((item, index) => criarItem({ ...item, id: `exemplo-${index}` }));
+
+const mil = value => Math.round(value * 1000);
+export function criarPlanejado(input) {
+  // Preço desconhecido não equivale a produto gratuito.
+  const semPreco = String(input.price ?? '').trim() === '';
+  const item = criarItem({ ...input, price: semPreco ? '1' : input.price });
+  return { ...item, priceCents: semPreco ? null : item.priceCents, skipped: false };
+}
+export const comprado = (plan, cart) => cart.filter(item => item.planId === plan.id).reduce((sum, item) => sum + mil(item.quantity), 0) / 1000;
+export const restante = (plan, cart) => plan.skipped ? 0 : Math.max(0, mil(plan.quantity) - mil(comprado(plan, cart))) / 1000;
+export function colocarPlanejado(state, { planId, quantity, price, id }) {
+  const plan = state.planned.find(item => item.id === planId);
+  if (!plan) throw new Error('Este produto não está mais na lista.');
+  const item = criarItem({ id, name: plan.name, price, quantity, unit: plan.unit });
+  if (mil(item.quantity) > mil(restante(plan, state.cart))) throw new Error('A quantidade é maior que o que falta. Edite a quantidade planejada primeiro.');
+  return { ...state, planned: state.planned.map(row => row.id === planId ? { ...row, priceCents: item.priceCents } : row), cart: [...state.cart, { ...item, planId }] };
+}
+export function editarCarrinho(state, item) {
+  const previous = state.cart.find(row => row.id === item.id);
+  if (!previous) throw new Error('Produto não encontrado no carrinho.');
+  if (previous.planId) {
+    const plan = state.planned.find(row => row.id === previous.planId);
+    if (!plan) throw new Error('A lista vinculada não foi encontrada.');
+    if (item.unit !== plan.unit || item.name !== plan.name) throw new Error('Para trocar produto ou unidade, exclua do carrinho e adicione o novo produto.');
+    const other = state.cart.filter(row => row.id !== item.id);
+    if (mil(item.quantity) + mil(comprado(plan, other)) > mil(plan.quantity)) throw new Error('A quantidade excede o planejado. Edite a lista primeiro.');
+  }
+  return { ...state, cart: state.cart.map(row => row.id === item.id ? { ...item, ...(previous.planId ? { planId: previous.planId } : {}) } : row) };
+}
+export function planejarCompra(purchase, newId) {
+  const planned = (purchase.planned || []).map(item => {
+    const lastPaid = [...purchase.items].reverse().find(row => row.planId === item.id);
+    return { ...item, id: newId(), skipped: false, priceCents: lastPaid?.priceCents ?? item.priceCents };
+  });
+  const extras = (purchase.planned?.length ? purchase.items.filter(item => !item.planId) : purchase.items);
+  for (const item of extras) planned.push({ id: newId(), name: item.name, quantity: item.quantity, unit: item.unit, priceCents: item.priceCents, skipped: false });
+  return planned;
+}
+export function migrarEstado(saved, date) {
+  if (!saved || ![1, 2].includes(saved.version) || !Array.isArray(saved.cart) || !Array.isArray(saved.history)) throw new Error('Formato de dados não reconhecido.');
+  return { ...saved, version: 2, planned: saved.version === 2 && Array.isArray(saved.planned) ? saved.planned : [], date: saved.date || date };
+}

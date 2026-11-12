@@ -3,12 +3,17 @@
 PWA de compras e estoque doméstico. Interface responsiva com cores suaves de
 laranja e lilás, instalável em navegadores compatíveis, sem APK ou publicação em loja.
 
-## Versão inicial 0.1.0
+## Versão 0.2.0 — Planejar e comprar
 
 - Carrinho com produto, preço, quantidade e unidade (unidade, kg ou litro).
+- Lista planejada separada do carrinho, com preço opcional e atendimento parcial.
+- Produtos pendentes, totalmente pegos ou dispensados apenas nesta compra.
+- Consulta “O que falta?” e total fixo na tela de compra.
+- Histórico cria uma nova lista pendente, com carrinho vazio e preços de referência.
 - Edição, exclusão com desfazer e total calculado em centavos.
 - Compra com supermercado e data, histórico e reutilização de itens.
-- Demonstração com produtos fictícios, identificada e excluída dos indicadores reais.
+- Demonstração com produtos fictícios em armazenamento separado das compras pessoais.
+- Migração da versão inicial preserva carrinho/histórico e guarda cópia dos dados v1.
 - Persistência local e exportação de JSON; restauração ainda não implementada.
 - Manifesto PWA, ícones e cache offline após o primeiro acesso completo.
 
@@ -56,6 +61,7 @@ GitHub Pages hospeda somente o frontend estático.
 
 ## Verificação
 
-Testes de cálculo cobrem centavos, peso, arredondamento e entradas inválidas.
+Testes cobrem centavos, peso, arredondamento, entradas inválidas, atendimento parcial,
+edição vinculada, retirada do carrinho, dispensas, reutilização e migração do histórico.
 Instalação, câmera/microfone e comportamento offline devem ser validados nos
 aparelhos Android e iOS usados no piloto. Ainda não há validação física nesses aparelhos.

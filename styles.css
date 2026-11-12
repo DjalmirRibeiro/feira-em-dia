@@ -88,3 +88,65 @@
 }
 .mobile-export{display:none}@media(max-width:760px){.mobile-export{display:block;padding:0 20px 25px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+/* Compra acompanhada: planejamento separado do valor efetivamente colocado no carrinho. */
+.purchase-settings{margin-bottom:18px}
+.purchase-settings>summary{font-size:16px;font-weight:600;line-height:1.6}
+.purchase-settings>summary span{display:block;font-size:14px;color:var(--muted);font-weight:400}
+.purchase-settings .purchase-fields{padding:20px 0 0;border:0}
+.shopping-tools{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}
+.shopping-switch{display:grid;grid-template-columns:1fr 1fr;padding:6px;background:#eee7f1;border-radius:15px;gap:6px}
+.shopping-switch button{border:0;background:transparent;border-radius:11px;min-height:52px;padding:12px 10px;font-size:16px;font-weight:600;color:#736478;line-height:1.5}
+.shopping-switch button[aria-pressed=true]{background:#fff;color:#624678;box-shadow:0 2px 8px #48334c0d}
+.shopping-switch button span{display:inline-block;margin-left:5px;padding:0 7px;border-radius:6px;background:#eee5f4;font-size:14px}
+.shopping-help{font-size:15px;line-height:1.7;color:#706376;margin:16px 0}
+.plan-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;margin:14px 0}
+.plan-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.plan-heading h3{font-size:18px;line-height:1.5;margin:0;overflow-wrap:anywhere}
+.plan-heading p,.plan-price{font-size:14px;line-height:1.7;color:#706376;margin:8px 0}
+.plan-status{display:inline-block;font-size:14px;line-height:1.6;font-weight:600;background:#fff0e3;color:#8a552f;border-radius:8px;padding:6px 10px;flex-shrink:0}
+.plan-status.resolved{background:#edf2e9;color:#4f6844}
+.plan-resolved{background:#fdfcf9}
+.plan-actions{display:flex;gap:8px 18px;align-items:center;flex-wrap:wrap;margin-top:16px}
+.plan-actions .button{font-size:15px;min-height:46px}
+.plan-actions .text-button{font-size:14px;min-height:44px}
+.demo-label{display:flex;gap:10px 20px;flex-wrap:wrap;align-items:center;font-size:14px;line-height:1.6;padding:14px 18px;background:#f1e7fa;border:1px solid #ddcdea;color:#65477d;border-radius:12px;margin:16px 0}
+.demo-label .text-button{font-size:14px;text-decoration:underline;min-height:44px}
+.shopping-active main{padding-bottom:120px}
+.shopping-bar{position:fixed;bottom:0;left:260px;right:0;display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fffdfbf5;backdrop-filter:blur(12px);border-top:1px solid #dfd0e3;padding:14px 32px calc(14px + env(safe-area-inset-bottom));z-index:3;box-shadow:0 -4px 24px #3c30450a}
+.shopping-bar>div{display:grid;grid-template-columns:auto auto;gap:0 18px;align-items:center}
+.shopping-bar span{font-size:14px;color:#6e6077}
+.shopping-bar strong{font-size:28px;line-height:1.3;letter-spacing:-.7px;grid-row:1/3;grid-column:2}
+.shopping-bar small{font-size:13px;color:#6e6077}
+.shopping-active #toast{bottom:130px}
+dialog{max-height:calc(100dvh - 40px);overflow-y:auto}
+#item-dialog,#pick-dialog{max-width:520px}
+#item-dialog form h2{margin:12px 30px 2px 0}
+#item-dialog input[readonly],#item-dialog select:disabled{background:#eee9ef;color:#6e6077}
+.form-error{font-size:15px;color:#a03434;line-height:1.6;margin:0}
+.form-error:empty{display:none}
+#pick-context{font-size:16px;line-height:1.7}
+#pick-form .button{width:100%}
+@media(max-width:1100px){.shopping-bar{left:210px}}
+@media(max-width:760px){
+  .shopping-bar{left:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));gap:10px}
+  .shopping-bar>div{display:flex;flex-direction:column;align-items:flex-start;gap:0}
+  .shopping-bar span{font-size:13px}
+  .shopping-bar strong{font-size:28px}
+  .shopping-bar small{font-size:12px}
+  .shopping-bar .button{font-size:16px;min-height:52px;padding:12px 18px}
+  .shopping-active main{padding-bottom:150px}
+  .shopping-active .mobile-export{padding-bottom:150px}
+  .shopping-active #toast{bottom:calc(125px + env(safe-area-inset-bottom))}
+  .plan-heading{flex-direction:column;gap:8px}
+  .plan-heading h3{font-size:20px}
+  .plan-heading p,.plan-price{font-size:15px}
+  .plan-status{font-size:15px}
+  .plan-actions .button{width:100%;font-size:16px;min-height:50px}
+  .plan-actions .text-button{font-size:15px}
+  .shopping-switch button{font-size:15px;padding:12px 5px}
+  .shopping-tools>.button{flex:1;font-size:16px}
+  .shopping-help{font-size:16px}
+  #item-dialog .form-row{grid-template-columns:1fr}
+  #item-dialog .shopping-help,#pick-dialog .shopping-help{font-size:14px;margin:0}
+}
