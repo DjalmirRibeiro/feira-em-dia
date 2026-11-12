@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#FFF9F5">
+  <meta name="description" content="Sua feira organizada, do primeiro item ao último centavo. Aplicativo instalável para compras do dia a dia.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <title>Feira em Dia · Sua compra mais leve</title>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="./"><img src="./icons/icon.svg" width="42" height="42" alt=""><span>feira<span class="brand-light">em</span>dia<small>COMPRAR. CUIDAR. ECONOMIZAR.</small></span></a>
+      <div class="sidebar-note">Um pouco de organização.<br>Mais leveza no seu dia.</div>
+      <nav aria-label="Navegação principal">
+        <button class="nav-button active" data-view="inicio"><span aria-hidden="true">⌂</span> Visão geral</button>
+        <button class="nav-button" data-view="carrinho"><span aria-hidden="true">▤</span> Minha compra <span id="nav-count" class="badge">0</span></button>
+        <button class="nav-button" data-view="historico"><span aria-hidden="true">◷</span> Histórico</button>
+        <button class="nav-button" data-view="sobre"><span aria-hidden="true">✧</span> Sobre o aplicativo</button>
+      </nav>
+      <div class="sidebar-bottom"><span class="status-dot"></span> Seus dados ficam neste dispositivo<button class="text-button" id="export">Exportar meus dados ↗</button></div>
+    </aside>
+    <main>
+      <header class="topbar"><span id="today"></span><button id="install" class="button secondary small">Instalar aplicativo <span aria-hidden="true">↗</span></button></header>
+      <div class="notice">PRIMEIRA VERSÃO <span>·</span> Carrinho e histórico disponíveis. Câmera, estoque e IA em desenvolvimento.</div>
+      <section id="view-inicio" class="view">
+        <div class="page-heading"><div><div class="eyebrow">SUA CASA, EM EQUILÍBRIO</div><h1>Uma compra mais leve<span>.</span></h1><p>Organize o carrinho. Acompanhe cada centavo.</p></div><span class="date-pill">✦ Do seu jeito, no seu tempo</span></div>
+        <div class="hero"><div><span class="hero-label">DO PLANEJAMENTO À DESPENSA</span><h2>Menos contas de cabeça.<br>Mais tranquilidade na feira.</h2><p>Adicione seus produtos e veja o total na hora.<br>Sua próxima compra começa por aqui.</p><button class="button dark" data-go="carrinho">Abrir minha compra <span aria-hidden="true">→</span></button></div><div class="hero-art" aria-hidden="true"><div class="art-orbit"></div><span class="art-leaf">❧</span><div class="grocery-bag"><span>feira<br><b>em dia.</b></span><div class="bag-handle"></div></div><div class="art-receipt">SUA LISTA<br><span>✓ Arroz</span><span>✓ Café</span><span>✓ Frutas</span><hr>tudo sob controle ♡</div></div></div>
+        <div class="stats"><article class="stat"><span class="stat-icon orange">▤</span><span>Total no carrinho</span><strong id="home-total">R$ 0,00</strong><small id="home-items">Nenhum produto adicionado</small></article><article class="stat"><span class="stat-icon purple">◷</span><span>Compras neste mês</span><strong id="month-total">R$ 0,00</strong><small id="month-count">Seu histórico começa aqui</small></article><article class="stat"><span class="stat-icon green">✓</span><span>Compras concluídas</span><strong id="history-count">0</strong><small>Listas prontas para reutilizar</small></article></div>
+        <div class="section-heading"><h2>Um passo de cada vez</h2><span>SEU COMPANHEIRO DE COMPRAS</span></div>
+        <div class="feature-grid"><article><span class="step">01</span><h3>Monte seu carrinho</h3><p>Informe produto, preço e quantidade. O total acompanha você.</p><button class="text-button" data-go="carrinho">Começar agora →</button></article><article><span class="step">02</span><h3>Guarde suas compras</h3><p>Salve a data e o supermercado. Reaproveite uma compra na próxima visita.</p><button class="text-button" data-go="historico">Ver meu histórico →</button></article><article><span class="step">03</span><h3>Tenha tudo por perto</h3><p>Instale na tela inicial do celular ou tablet e abra também sem internet após o primeiro acesso.</p><button class="text-button" id="install-help">Como instalar →</button></article></div>
+      </section>
+      <section id="view-carrinho" class="view" hidden>
+        <div class="page-heading"><div><div class="eyebrow">CADA ITEM CONTA</div><h1>Minha compra<span>.</span></h1><p>Seu total atualizado, do primeiro ao último produto.</p></div><button class="button secondary" id="demo">Experimentar com exemplos</button></div>
+        <div class="shopping-layout"><div><div class="panel"><div class="purchase-fields"><label>Supermercado<input id="market" maxlength="100" placeholder="Onde você está comprando?"></label><label>Data<input id="purchase-date" type="date" required></label></div><form id="item-form"><h2 id="form-title">Adicionar produto</h2><input id="edit-id" type="hidden"><label>Nome do produto<input id="product" required maxlength="120" placeholder="Ex.: Arroz branco 5 kg"></label><div class="form-row"><label>Preço por unidade (R$)<input id="price" inputmode="decimal" required placeholder="24,90"></label><label>Quantidade<input id="quantity" inputmode="decimal" value="1" required></label></div><label>Unidade de cobrança<select id="unit"><option value="un">Unidade / pacote</option><option value="kg">Quilograma</option><option value="L">Litro</option></select></label><div class="form-actions"><button class="button dark" type="submit" id="submit-item">Adicionar ao carrinho +</button><button class="text-button" type="button" id="cancel-edit" hidden>Cancelar edição</button></div></form></div><div class="section-heading"><h2>Itens no carrinho</h2><span id="item-count">0 ITENS</span></div><div id="items"></div></div><aside class="summary panel"><span class="eyebrow">RESUMO DA COMPRA</span><h2>Tudo somado.</h2><p id="summary-count">0 produtos no carrinho</p><hr><div class="total-label">Total estimado</div><strong id="cart-total">R$ 0,00</strong><small>Confira os preços no caixa. Descontos devem ser incluídos no preço informado.</small><button id="finish" class="button dark">Concluir e salvar compra ✓</button><p class="local-note">Salvo neste navegador. Exporte seus dados para manter uma cópia.</p></aside></div>
+      </section>
+      <section id="view-historico" class="view" hidden><div class="page-heading"><div><div class="eyebrow">CADA COMPRA TEM SUA HISTÓRIA</div><h1>Histórico<span>.</span></h1><p>Consulte os valores e reutilize os produtos na próxima compra.</p></div></div><div id="history-list"></div></section>
+      <section id="view-sobre" class="view" hidden><div class="page-heading"><div><div class="eyebrow">FEITO PARA FACILITAR</div><h1>Sua feira, em dia<span>.</span></h1><p>Um aplicativo para acompanhar as compras e o cuidado com a casa.</p></div></div><div class="panel prose"><h2>Uma primeira versão para experimentar</h2><p>Já é possível adicionar, editar e excluir produtos, somar a compra, guardar o histórico e reutilizar uma lista. Os dados são salvos somente neste navegador, separados de outros dispositivos.</p><h3>O que vem a seguir</h3><p>Captura de produtos e etiquetas por foto, assistente de IA com chave própria, comandos por voz, estoque, validade e previsões de reposição. Esses recursos ainda não estão ativos nesta versão.</p><h3>Instalação e acesso sem internet</h3><p>No Android, use a opção de instalar do navegador. No iPhone ou iPad, abra no Safari, toque em Compartilhar e escolha Adicionar à Tela de Início. A instalação depende do navegador e exige sua confirmação. Após o primeiro acesso completo, a interface pode abrir sem conexão.</p><h3>Seus dados</h3><p>Limpar os dados do navegador pode apagar suas compras. Use “Exportar meus dados” para baixar uma cópia em JSON. Restauração e sincronização serão incluídas em uma próxima versão. Não registre informações sensíveis nesta versão inicial.</p><a class="text-button" href="https://github.com/DjalmirRibeiro/feira-em-dia" target="_blank" rel="noopener">Acompanhar o projeto no GitHub ↗</a></div></section>
+      <footer>feira em dia <span>·</span> Um cuidado a mais com a sua rotina.<span id="connection"></span></footer>
+    </main>
+  </div>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="install-dialog"><button class="dialog-close" aria-label="Fechar">×</button><span class="eyebrow">SEMPRE POR PERTO</span><h2>Leve para a tela inicial.</h2><p><b>Android:</b> no menu do Chrome, escolha “Instalar aplicativo” ou “Adicionar à tela inicial”.</p><p><b>iPhone e iPad:</b> abra no Safari, toque em Compartilhar e depois em “Adicionar à Tela de Início”.</p><p><b>Computador:</b> procure o botão de instalação na barra de endereço, se disponível.</p><small>A opção varia conforme o navegador. Você também pode usar o app diretamente por este link.</small></dialog>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
