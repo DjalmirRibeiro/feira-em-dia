@@ -1,4 +1,4 @@
-const CACHE = 'feira-em-dia-v1';
+const CACHE = 'feira-em-dia-v2';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './core.js', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png'];
 self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('feira-em-dia-') && key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())); });

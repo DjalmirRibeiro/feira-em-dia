@@ -45,8 +45,10 @@
       <footer>feira em dia <span>·</span> Um cuidado a mais com a sua rotina.<span id="connection"></span></footer>
     </main>
   </div>
+  <div class="mobile-export"><button class="text-button" id="export-mobile">Exportar meus dados ↗</button></div>
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <dialog id="install-dialog"><button class="dialog-close" aria-label="Fechar">×</button><span class="eyebrow">SEMPRE POR PERTO</span><h2>Leve para a tela inicial.</h2><p><b>Android:</b> no menu do Chrome, escolha “Instalar aplicativo” ou “Adicionar à tela inicial”.</p><p><b>iPhone e iPad:</b> abra no Safari, toque em Compartilhar e depois em “Adicionar à Tela de Início”.</p><p><b>Computador:</b> procure o botão de instalação na barra de endereço, se disponível.</p><small>A opção varia conforme o navegador. Você também pode usar o app diretamente por este link.</small></dialog>
+  <dialog id="confirm-dialog"><h2>Confirmar alteração</h2><p id="confirm-message"></p><form method="dialog"><button class="button dark" value="confirm">Confirmar</button><button class="button secondary" value="cancel" autofocus>Cancelar</button></form></dialog>
   <script type="module" src="./app.js"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 # Plano do MVP — Compras e estoque doméstico
 
-Data: 12/11/2026. Estado: plano do MVP completo; primeira versão PWA em preparação.
+Data: 12/11/2026. Estado: primeira versão PWA implementada; MVP completo em desenvolvimento.
 
 ## 1. Objetivo e decisões confirmadas
 
@@ -378,3 +378,19 @@ na implementação, antes de escolher os modelos.
 - Funções estruturadas: https://developers.openai.com/api/docs/guides/function-calling
 - Transcrição: https://developers.openai.com/api/docs/guides/transcription
 - Credenciais: https://developers.openai.com/api/docs/guides/api-keys
+
+## 13. Primeira entrega PWA — 12/11/2026
+
+- Repositório público: https://github.com/DjalmirRibeiro/feira-em-dia
+- Endereço configurado no GitHub Pages: https://djalmirribeiro.github.io/feira-em-dia/
+- Pasta independente: A:/AlumicalcFlutter/feira-em-dia.
+- Implementados: interface responsiva, instalação PWA, carrinho manual com edição e
+  exclusão, total, data/loja, fechamento, histórico, reutilização e exportação JSON.
+- Exemplos fictícios identificados e excluídos dos indicadores de compras reais.
+- Persistência inicial via localStorage; interface com cache pelo service worker.
+- Câmera, IA/voz, estoque, previsões, catálogo completo de 60 produtos, seis meses
+  simulados e demonstração em base separada permanecem como próximas entregas.
+- Testes automatizados: soma em centavos, peso, arredondamento, entradas inválidas
+  e total dos exemplos. Verificação de sintaxe dos módulos e do service worker.
+- Verificação no navegador: exemplos, edição, exclusão, totais e fechamento no histórico.
+- Instalação e permissões em Android/iOS físicos ainda precisam ser validadas.

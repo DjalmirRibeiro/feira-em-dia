@@ -17,7 +17,7 @@ não implementados. O plano completo está em [docs/plano-mvp.md](docs/plano-mvp
 
 ## Acessar e instalar
 
-Publicação prevista em https://djalmirribeiro.github.io/feira-em-dia/.
+Endereço do aplicativo: https://djalmirribeiro.github.io/feira-em-dia/.
 No Android, usar Instalar aplicativo no navegador. No iPhone/iPad, abrir no Safari
 e usar Compartilhar → Adicionar à Tela de Início. O navegador exige ação do usuário;
 abrir a página não instala automaticamente. Também funciona como página comum.

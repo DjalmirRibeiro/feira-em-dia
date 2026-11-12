@@ -9,6 +9,15 @@ let storageFailed = false;
 try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved?.version === 1 && Array.isArray(saved.cart) && Array.isArray(saved.history)) state = saved; } catch { storageFailed = true; }
 let toastTimer;
 function notify(message) { $('#toast').textContent = message; $('#toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('#toast').hidden = true; }, 6500); }
+function confirmar(message) {
+  const dialog = $('#confirm-dialog');
+  $('#confirm-message').textContent = message;
+  dialog.returnValue = 'cancel';
+  return new Promise(resolve => {
+    dialog.addEventListener('close', () => resolve(dialog.returnValue === 'confirm'), { once: true });
+    dialog.showModal();
+  });
+}
 function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); return true; } catch { notify('Não foi possível salvar neste navegador. Exporte os dados antes de fechar.'); return false; } }
 function show(view) { document.querySelectorAll('.view').forEach(el => { el.hidden = el.id !== `view-${view}`; }); document.querySelectorAll('[data-view]').forEach(el => { el.classList.toggle('active', el.dataset.view === view); if (el.dataset.view === view) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current'); }); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 const node = (tag, cls, text) => { const el = document.createElement(tag); if (cls) el.className = cls; if (text !== undefined) el.textContent = text; return el; };
@@ -44,7 +53,7 @@ function render() {
     heading.append(info, node('strong', '', moeda(total(purchase.items))));
     const details = node('details'); details.append(node('summary', '', 'Ver produtos'));
     for (const item of purchase.items) details.append(node('p', '', `${item.name} · ${item.quantity} ${item.unit} · ${moeda(subtotal(item))}`));
-    card.append(heading, details, action('Reutilizar esta compra →', () => { if (state.cart.length && !confirm('Substituir os itens do carrinho atual por esta compra?')) return; state.cart = purchase.items.map(i => ({ ...i, id: crypto.randomUUID() })); state.market = purchase.market; state.date = hoje(); state.demo = Boolean(purchase.demo); resetForm(); save(); render(); show('carrinho'); notify('Itens copiados. Revise os preços: são os valores da compra anterior.'); })); history.append(card);
+    card.append(heading, details, action('Reutilizar esta compra →', async () => { if (state.cart.length && !(await confirmar('Substituir os itens do carrinho atual por esta compra?'))) return; state.cart = purchase.items.map(i => ({ ...i, id: crypto.randomUUID() })); state.market = purchase.market; state.date = hoje(); state.demo = Boolean(purchase.demo); resetForm(); save(); render(); show('carrinho'); notify('Itens copiados. Revise os preços: são os valores da compra anterior.'); })); history.append(card);
   }
 }
 document.querySelectorAll('[data-view]').forEach(el => el.addEventListener('click', () => show(el.dataset.view)));
@@ -53,9 +62,10 @@ $('#item-form').addEventListener('submit', event => { event.preventDefault(); tr
 $('#cancel-edit').addEventListener('click', resetForm);
 $('#market').addEventListener('change', event => { state.market = event.target.value.trim(); save(); });
 $('#purchase-date').addEventListener('change', event => { if (event.target.value) { state.date = event.target.value; save(); } });
-$('#demo').addEventListener('click', () => { if (state.cart.length && !confirm('Substituir o carrinho atual por produtos fictícios? O histórico será preservado.')) return; state.cart = exemplos(); state.market = 'Mercado Jardim · fictício'; state.date = hoje(); state.demo = true; resetForm(); save(); render(); notify('Demonstração carregada. Valores fictícios; compras de exemplo ficam fora dos indicadores reais.'); });
-$('#finish').addEventListener('click', () => { if (!state.cart.length) return; if (!$('#purchase-date').value) return notify('Informe a data da compra.'); if (!confirm(`Concluir e salvar a compra de ${moeda(total(state.cart))}?${state.demo ? ' Esta compra será identificada como demonstração.' : ''}`)) return; state.history.push({ id: crypto.randomUUID(), date: state.date, market: state.market, demo: state.demo, items: state.cart.map(i => ({ ...i })) }); state.cart = []; state.demo = false; resetForm(); const saved = save(); render(); show('historico'); if (saved) notify('Compra salva neste navegador.'); });
+$('#demo').addEventListener('click', async () => { if (state.cart.length && !(await confirmar('Substituir o carrinho atual por produtos fictícios? O histórico será preservado.'))) return; state.cart = exemplos(); state.market = 'Mercado Jardim · fictício'; state.date = hoje(); state.demo = true; resetForm(); save(); render(); notify('Demonstração carregada. Valores fictícios; compras de exemplo ficam fora dos indicadores reais.'); });
+$('#finish').addEventListener('click', async () => { if (!state.cart.length) return; if (!$('#purchase-date').value) return notify('Informe a data da compra.'); if (!(await confirmar(`Concluir e salvar a compra de ${moeda(total(state.cart))}?${state.demo ? ' Esta compra será identificada como demonstração.' : ''}`))) return; state.history.push({ id: crypto.randomUUID(), date: state.date, market: state.market, demo: state.demo, items: state.cart.map(i => ({ ...i })) }); state.cart = []; state.demo = false; resetForm(); const saved = save(); render(); show('historico'); if (saved) notify('Compra salva neste navegador.'); });
 $('#export').addEventListener('click', () => { const url = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' })); const a = node('a'); a.href = url; a.download = `feira-em-dia-${hoje()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 5000); });
+$('#export-mobile').addEventListener('click', () => $('#export').click());
 let installPrompt;
 window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt = event; });
 async function install() { if (installPrompt) { const prompt = installPrompt; installPrompt = null; await prompt.prompt(); } else $('#install-dialog').showModal(); }
