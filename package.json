@@ -1,8 +1,19 @@
 {
   "name": "feira-em-dia",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "PWA de compras e estoque doméstico",
-  "scripts": { "test": "node --test --test-isolation=none tests/*.test.js", "check": "node --check app.js && node --check core.js && node --check catalog.js && node --check catalog-core.js && node --check catalog-store.js && node --check sw.js" }
+  "scripts": {
+    "test": "node --test --test-isolation=none tests/*.test.js",
+    "check": "node --check app.js && node --check core.js && node --check catalog.js && node --check catalog-core.js && node --check catalog-store.js && node --check crop.js && node --check crop-core.js && node --check recognition-core.js && node --check sw.js",
+    "build:recognition": "node scripts/build-recognition.mjs"
+  },
+  "dependencies": {
+    "@zxing/browser": "0.2.1",
+    "tesseract.js": "7.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
 }

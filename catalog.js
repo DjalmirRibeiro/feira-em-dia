@@ -1,6 +1,8 @@
-import { moeda } from './core.js?v=6';
-import { CATEGORIAS, validarProduto, filtrarProdutos, nomeApresentacao, produtosExemplo } from './catalog-core.js?v=6';
-import { listarProdutos, salvarProduto, semearExemplos, prepararFoto, fotoParaBackup } from './catalog-store.js?v=6';
+import { moeda } from './core.js?v=7';
+import { CATEGORIAS, validarProduto, filtrarProdutos, nomeApresentacao, produtosExemplo } from './catalog-core.js?v=7';
+import { listarProdutos, salvarProduto, semearExemplos, prepararFoto, fotoParaBackup } from './catalog-store.js?v=7';
+import { criarRecortador } from './crop.js?v=7';
+import { extrairEtiqueta } from './recognition-core.js?v=7';
 
 export function iniciarCatalogo(host) {
   const $ = selector => document.querySelector(selector);
@@ -10,7 +12,20 @@ export function iniciarCatalogo(host) {
   let products = [], loadedScope = null, requestNumber = 0, draft = null, editorScope, editorRevision = 0, processing = 0, saving = false;
   const listUrls = [], editorUrls = [];
   const photoTasks = { photo: 0, labelPhoto: 0 };
+  const recortar = criarRecortador();
+  let reading = false, readingJob = 0, reader, readingResult, existingProduct, abortReading;
+  const manuallyEdited = new Set();
   function revoke(urls) { while (urls.length) URL.revokeObjectURL(urls.pop()); }
+  async function examplesWithPhotos() {
+    const response = await fetch('./assets/demo-sources.json'); if (!response.ok) throw new Error('Não foi possível carregar as imagens de exemplo.');
+    const sources = await response.json();
+    return Promise.all(produtosExemplo().map(async product => {
+      const source = sources.find(row => row.id === product.id); if (!source) return product;
+      if (!/^assets\/demo\/[a-z0-9-]+\.jpg$/.test(source.localPath)) throw new Error('Caminho de imagem inválido.');
+      const image = await fetch(`./${source.localPath}`); if (!image.ok) throw new Error('Uma imagem de exemplo não pôde ser carregada.');
+      return { ...product, photo: await image.blob(), imageSource: source };
+    }));
+  }
   for (const category of CATEGORIAS) {
     const option = el('option', '', category); option.value = category; $('#catalog-category').append(option);
     const editOption = el('option', '', category); editOption.value = category; $('#cat-category').append(editOption);
@@ -36,6 +51,12 @@ export function iniciarCatalogo(host) {
       if (product.priceCents != null) content.append(el('small', '', `Referência de ${product.priceDate.split('-').reverse().join('/')}${product.storeName ? ` · ${product.storeName}` : ''}. Confira o preço atual.`));
       if (product.synthetic) content.append(el('small', 'catalog-fictitious', 'Exemplo fictício · código interno DEMO'));
       if (product.barcode) content.append(el('small', '', `Código: ${product.barcode}`));
+      if (product.imageSource) {
+        const credit = el('small', 'photo-credit', `Foto ilustrativa: ${product.imageSource.author} · ${product.imageSource.license}. Imagem adaptada. `);
+        const source = el('a', '', 'Origem e licença'); source.href = product.imageSource.pageUrl; source.target = '_blank'; source.rel = 'noopener'; credit.append(source); content.append(credit);
+        const licenseUrl = product.imageSource.licenseUrl?.replace(/^http:/, 'https:');
+        if (/^https:\/\/(creativecommons\.org|commons\.wikimedia\.org)\//.test(licenseUrl || '')) { const license = el('a', '', ' · Texto da licença'); license.href = licenseUrl; license.target = '_blank'; license.rel = 'noopener'; credit.append(license); }
+      }
       const actions = el('div', 'catalog-actions');
       if (!product.archived) actions.append(button('Adicionar à lista +', () => host.addToList(product), 'button dark'));
       actions.append(button('Ver / editar', () => open(product)), button(product.archived ? 'Restaurar' : 'Arquivar', async () => {
@@ -51,11 +72,11 @@ export function iniciarCatalogo(host) {
     if (!force && loadedScope === scope) return;
     const request = ++requestNumber;
     loadedScope = null;
-    $('#catalog-status').textContent = 'Abrindo seu catálogo…'; products = []; render();
+    $('#catalog-status').textContent = 'Abrindo seu catálogo…'; products = []; render(); host.onCatalogChanged?.([]);
     try {
       const result = await listarProdutos(scope);
       if (request !== requestNumber || scope !== host.getScope()) return;
-      products = result; loadedScope = scope; $('#catalog-status').textContent = ''; render();
+      products = result; loadedScope = scope; $('#catalog-status').textContent = ''; render(); host.onCatalogChanged?.(products);
     } catch (error) { if (request === requestNumber) $('#catalog-status').textContent = `${error.message} Suas listas e o carrinho continuam disponíveis.`; }
   }
   function previews() {
@@ -64,13 +85,18 @@ export function iniciarCatalogo(host) {
       const image = $(kind === 'photo' ? '#cat-photo-preview' : '#cat-label-preview');
       const remove = $(kind === 'photo' ? '#cat-remove-photo' : '#cat-remove-label');
       image.hidden = !draft?.[kind]; remove.hidden = !draft?.[kind]; image.removeAttribute('src');
+      $(kind === 'photo' ? '#cat-crop-photo' : '#cat-crop-label').hidden = !draft?.[kind];
+      const readButton = $(kind === 'photo' ? '#cat-read-photo' : '#cat-read-label'); readButton.hidden = !draft?.[kind]; readButton.disabled = reading || processing > 0;
       if (draft?.[kind]) { image.src = URL.createObjectURL(draft[kind]); editorUrls.push(image.src); }
     }
     $('#cat-photo-status').textContent = processing ? 'Preparando foto…' : draft?.photo || draft?.labelPhoto ? 'Foto preparada. Toque em Salvar produto para guardar.' : 'Fotos opcionais. Nenhuma imagem é enviada para um servidor.';
-    $('#cat-save').disabled = saving || processing > 0;
+    $('#cat-save').disabled = saving || processing > 0 || reading;
+    $('#cat-save-list').disabled = saving || processing > 0 || reading;
   }
   function open(product = null, camera = false) {
     editorRevision++; processing = 0; saving = false; editorScope = host.getScope();
+    manuallyEdited.clear();
+    readingResult = null; existingProduct = null; $('#cat-recognition').hidden = true;
     draft = product ? { ...product } : { id: crypto.randomUUID(), photo: null, labelPhoto: null, archived: false };
     $('#catalog-form').reset(); $('#cat-error').textContent = '';
     $('#cat-title').textContent = product ? 'Seu produto' : 'Cadastrar produto';
@@ -87,8 +113,12 @@ export function iniciarCatalogo(host) {
     if (!file || !draft) return;
     const revision = editorRevision, task = ++photoTasks[kind]; processing++; previews(); $('#cat-error').textContent = '';
     try {
-      const photo = await prepararFoto(file);
-      if (revision === editorRevision && task === photoTasks[kind]) draft[kind] = photo;
+      const photo = await recortar(file);
+      if (photo && revision === editorRevision && task === photoTasks[kind]) {
+        draft[kind] = photo;
+        if (kind === 'photo') delete draft.imageSource;
+        if ($('#cat-auto-read').checked) await analyze(kind);
+      }
     } catch (error) { if (revision === editorRevision && task === photoTasks[kind]) $('#cat-error').textContent = error.message; }
     finally { if (revision === editorRevision) { processing--; previews(); } }
   }
@@ -97,7 +127,77 @@ export function iniciarCatalogo(host) {
   $('#catalog-new').addEventListener('click', () => open()); $('#catalog-capture').addEventListener('click', () => open(null, true));
   $('#catalog-close').addEventListener('click', () => { if (!saving) $('#catalog-dialog').close(); });
   $('#catalog-dialog').addEventListener('cancel', event => { if (saving) event.preventDefault(); });
-  $('#catalog-dialog').addEventListener('close', () => { editorRevision++; draft = null; revoke(editorUrls); });
+  $('#catalog-dialog').addEventListener('close', () => { editorRevision++; cancelReading(); draft = null; revoke(editorUrls); });
+  async function cancelReading() { readingJob++; reading = false; abortReading?.(); abortReading = null; $('#cat-read-cancel').hidden = true; if (reader) await reader.cancelarLeitura(); if (draft) previews(); }
+  function applyReading(onlyEmpty = false) {
+    if (!readingResult || !draft) return;
+    const result = readingResult;
+    const candidates = { 'cat-name': existingProduct?.name || result.name, 'cat-brand': existingProduct?.brand || result.brand,
+      'cat-presentation': existingProduct?.presentation || result.presentation, 'cat-code': result.barcode };
+    for (const [id, value] of Object.entries(candidates)) if (value && (!onlyEmpty || !manuallyEdited.has(id) && !document.getElementById(id).value.trim())) document.getElementById(id).value = value;
+    if (!onlyEmpty || !manuallyEdited.has('cat-price') && !$('#cat-price').value.trim()) {
+      const value = $('#cat-read-price').value;
+      if (value) { $('#cat-price').value = (Number(value) / 100).toFixed(2).replace('.', ','); $('#cat-date').value = today(); }
+    }
+    if (existingProduct) { if (!onlyEmpty || !manuallyEdited.has('cat-category')) $('#cat-category').value = existingProduct.category; if (!onlyEmpty || !manuallyEdited.has('cat-unit')) $('#cat-unit').value = existingProduct.unit; }
+    else if (result.unit && (!onlyEmpty || !manuallyEdited.has('cat-unit'))) $('#cat-unit').value = result.unit;
+  }
+  async function analyze(kind) {
+    if (!draft?.[kind] || reading) return;
+    const revision = editorRevision, job = ++readingJob; reading = true;
+    $('#cat-recognition').hidden = false; $('#cat-read-results').hidden = true; $('#cat-read-cancel').hidden = false;
+    $('#cat-read-status').textContent = 'Preparando leitor local. O primeiro uso precisa de internet e pode demorar alguns segundos.'; previews();
+    const valid = () => draft && revision === editorRevision && job === readingJob;
+    let timeout;
+    const cancelled = new Promise(resolve => { abortReading = () => resolve(null); });
+    const expired = new Promise((resolve, reject) => { timeout = setTimeout(() => reject(new Error('Tempo de leitura excedido.')), 60000); });
+    try {
+      reader = await Promise.race([import('./vendor/v7/recognition.js'), cancelled, expired]);
+      if (!reader) return;
+      if (!valid()) return;
+      const report = event => { if (valid()) $('#cat-read-status').textContent = event.status === 'recognizing text' ? `Lendo texto… ${Math.round((event.progress || 0) * 100)}%` : 'Carregando leitor e idioma português…'; };
+      const results = await Promise.race([Promise.allSettled([reader.lerTexto(draft[kind], report), reader.lerCodigo(draft[kind])]), cancelled, expired]);
+      if (!valid() || !results) return;
+      const text = results[0].status === 'fulfilled' ? results[0].value.text : '';
+      readingResult = extrairEtiqueta(text);
+      if (results[1].status === 'fulfilled' && /^[A-Za-z0-9 -]{4,48}$/.test(results[1].value)) readingResult.barcode = results[1].value;
+      existingProduct = readingResult.barcode ? products.find(product => !product.archived && product.barcode === readingResult.barcode && product.id !== draft.id) : null;
+      $('#cat-read-text').value = text;
+      const select = $('#cat-read-price'); select.replaceChildren();
+      const empty = el('option', '', 'Não preencher preço / escolher depois'); empty.value = ''; select.append(empty);
+      for (const candidate of readingResult.prices) { const option = el('option', '', `${moeda(candidate.cents)}${candidate.conditional ? ' · condição especial' : ''} — ${candidate.label.slice(0, 80)}`); option.value = candidate.cents; select.append(option); }
+      if (!readingResult.ambiguous) select.value = String(readingResult.prices[0].cents);
+      $('#cat-read-summary').textContent = [existingProduct || readingResult.name ? `Nome sugerido: ${existingProduct?.name || readingResult.name}.` : 'Nome não identificado.', readingResult.barcode ? `Código: ${readingResult.barcode}.` : 'Código não encontrado; tente uma foto mais próxima das barras.', readingResult.ambiguous && readingResult.prices.length ? 'Confira as condições e escolha o preço correto.' : 'Confira os campos antes de salvar.'].join(' ');
+      $('#cat-read-results').hidden = false;
+      $('#cat-use-existing').hidden = !existingProduct; $('#cat-existing-message').hidden = !existingProduct;
+      $('#cat-existing-message').textContent = existingProduct ? `Este código já está no catálogo: ${nomeApresentacao(existingProduct)}.` : '';
+      if (results[0].status === 'fulfilled' && results[0].value.confidence >= 35 || readingResult.barcode) applyReading(true);
+      $('#cat-read-status').textContent = results[0].status === 'rejected' ? 'O texto não pôde ser lido. O resultado do código, se encontrado, continua disponível.' : 'Leitura concluída. Campos vazios foram sugeridos; revise antes de salvar.';
+    } catch { if (valid()) { $('#cat-read-status').textContent = 'A leitura não foi concluída. Verifique a conexão ou tente uma foto mais próxima; você pode preencher os campos manualmente.'; reader?.cancelarLeitura(); } }
+    finally { clearTimeout(timeout); if (valid()) { abortReading = null; reading = false; $('#cat-read-cancel').hidden = true; previews(); } }
+  }
+  $('#cat-read-cancel').addEventListener('click', () => { cancelReading(); $('#cat-read-status').textContent = 'Leitura cancelada. A foto e os campos preenchidos foram mantidos.'; });
+  $('#cat-apply-reading').addEventListener('click', () => applyReading(false));
+  $('#catalog-form').addEventListener('input', event => { if (event.target.id) manuallyEdited.add(event.target.id); });
+  $('#cat-read-price').addEventListener('change', () => { const value = $('#cat-read-price').value; $('#cat-price').value = value ? (Number(value) / 100).toFixed(2).replace('.', ',') : ''; if (value) $('#cat-date').value = today(); manuallyEdited.add('cat-price'); });
+  $('#cat-use-existing').addEventListener('click', () => {
+    if (!existingProduct || !draft) return;
+    const capturedSource = draft.imageSource, capturedPhoto = draft.photo;
+    draft = { ...existingProduct, photo: draft.photo || existingProduct.photo, labelPhoto: draft.labelPhoto || existingProduct.labelPhoto };
+    if (capturedPhoto) { if (capturedSource) draft.imageSource = capturedSource; else delete draft.imageSource; }
+    if (!$('#cat-price').value.trim() && existingProduct.priceCents != null) { $('#cat-price').value = (existingProduct.priceCents / 100).toFixed(2).replace('.', ','); $('#cat-date').value = existingProduct.priceDate; $('#cat-store').value = existingProduct.storeName || ''; }
+    $('#cat-title').textContent = 'Atualizar produto cadastrado'; applyReading(true); $('#cat-existing-message').textContent = 'Salvar atualizará o cadastro existente com as fotos e os campos revisados.'; $('#cat-use-existing').hidden = true; previews();
+  });
+  for (const [kind, cropId, readId] of [['photo', 'cat-crop-photo', 'cat-read-photo'], ['labelPhoto', 'cat-crop-label', 'cat-read-label']]) {
+    $(`#${readId}`).addEventListener('click', () => analyze(kind));
+    $(`#${cropId}`).addEventListener('click', async () => {
+      if (!draft?.[kind] || reading || processing) return;
+      const revision = editorRevision; processing++; previews();
+      try { const result = await recortar(draft[kind]); if (result && revision === editorRevision) { draft[kind] = result; if (kind === 'photo' && draft.imageSource) draft.imageSource = { ...draft.imageSource, changes: 'Imagem recortada pelo usuário.' }; if ($('#cat-auto-read').checked) await analyze(kind); } }
+      catch (error) { if (revision === editorRevision) $('#cat-error').textContent = error.message; }
+      finally { if (revision === editorRevision) { processing--; previews(); } }
+    });
+  }
   for (const [buttonId, inputId, kind] of [
     ['cat-take-photo', 'cat-camera', 'photo'], ['cat-choose-photo', 'cat-gallery', 'photo'],
     ['cat-take-label', 'cat-label-camera', 'labelPhoto'], ['cat-choose-label', 'cat-label-gallery', 'labelPhoto']
@@ -107,7 +207,8 @@ export function iniciarCatalogo(host) {
   }
   for (const [buttonId, kind] of [['cat-remove-photo', 'photo'], ['cat-remove-label', 'labelPhoto']]) $(`#${buttonId}`).addEventListener('click', () => { photoTasks[kind]++; draft[kind] = null; previews(); });
   $('#catalog-form').addEventListener('submit', async event => {
-    event.preventDefault(); if (saving || processing || !draft) return;
+    event.preventDefault(); if (saving || processing || reading || !draft) return;
+    const addToList = event.submitter?.id === 'cat-save-list';
     try {
       if (editorScope !== host.getScope()) throw new Error('A base de dados mudou. Feche o cadastro e tente novamente.');
       const validated = validarProduto({ id: draft.id, name: $('#cat-name').value, brand: $('#cat-brand').value, presentation: $('#cat-presentation').value,
@@ -118,6 +219,7 @@ export function iniciarCatalogo(host) {
       saving = true; previews(); $('#catalog-close').disabled = true;
       await salvarProduto(editorScope, product);
       $('#catalog-dialog').close(); await refresh(true); host.notify('Produto e fotos salvos no catálogo deste navegador.');
+      if (addToList) host.addToList(product);
     } catch (error) { $('#cat-error').textContent = error.message; }
     finally { saving = false; $('#catalog-close').disabled = false; if (draft) previews(); }
   });
@@ -125,7 +227,17 @@ export function iniciarCatalogo(host) {
     const button = $('#catalog-examples'); button.disabled = true;
     try {
       if (host.getScope() !== 'demo') { const entered = await host.enterDemo(); if (!entered) return; }
-      await semearExemplos(produtosExemplo()); await refresh(true); host.notify('60 produtos fictícios disponíveis na base de demonstração. Seus produtos pessoais foram preservados.');
+      await semearExemplos(await examplesWithPhotos()); await refresh(true); host.notify('60 produtos fictícios disponíveis, com 12 fotos ilustrativas da internet e seus créditos. Seus produtos pessoais foram preservados.');
+    } catch (error) { host.notify(error.message); }
+    finally { button.disabled = false; }
+  });
+  $('#catalog-photo-list').addEventListener('click', async () => {
+    const button = $('#catalog-photo-list'); button.disabled = true;
+    try {
+      if (host.getScope() !== 'demo' && !await host.enterDemo()) return;
+      const examples = await examplesWithPhotos(); await semearExemplos(examples); await refresh(true);
+      const illustratedIds = new Set(examples.filter(product => product.photo).map(product => product.id));
+      await host.createDemoList(products.filter(product => illustratedIds.has(product.id) && !product.archived));
     } catch (error) { host.notify(error.message); }
     finally { button.disabled = false; }
   });

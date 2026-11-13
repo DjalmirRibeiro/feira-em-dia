@@ -482,3 +482,48 @@ comprovar ainda uso da câmera física de Android/iOS.
 Leitura assistida da etiqueta e configuração segura do serviço de IA, mantendo
 revisão e correção antes da inclusão. O usuário poderá começar a testar agora os
 cadastros e fotos reais de casa enquanto essa integração é desenvolvida.
+
+## 16. Recorte, OCR e demonstração ilustrada — versão 0.4.0 — 13/11/2026
+
+### Entregue
+
+- Todo arquivo da câmera/galeria passa por recorte antes de ser aceito no cadastro.
+  Arraste dos cantos e centro, giro, foto inteira, seleção central e controles por
+  porcentagem. Cancelar mantém a foto anterior e não cadastra o produto.
+- Fotos existentes também podem ser recortadas; a análise usa a área selecionada.
+- OCR em português via Tesseract.js 7 e leitor de códigos via BarcodeDetector/ZXing.
+  Bibliotecas e idioma hospedados junto à PWA, carregados sob demanda e processando
+  a imagem localmente, sem API paga ou envio da foto a provedor externo.
+- Nome, marca explícita, apresentação, preço e código sugeridos em campos vazios.
+  Edições feitas pelo usuário são preservadas; há aplicação explícita das sugestões.
+- Mais de um preço ou condição de clube/promoção exige escolher o valor. O código
+  de barras não determina o preço; a leitura consulta apenas os cadastros locais.
+- Cadastro existente pelo código pode ser atualizado por ação explícita. Fotos e
+  campos revisados só são persistidos no salvamento.
+- “Salvar e adicionar à lista” encurta o caminho até informar a quantidade.
+- Doze fotos ilustrativas do Wikimedia Commons, com autoria, origem e licença no
+  catálogo, no backup e em docs/creditos-imagens.md. Preços/códigos DEMO permanecem
+  fictícios; as fotos não garantem variedade, marca ou embalagem.
+- Botão cria lista demonstrativa de produtos ilustrados, com miniaturas também
+  na lista e no carrinho. Dados pessoais não são substituídos.
+- Etiqueta sintética imprimível em assets/testes/etiqueta-ficticia.png, com preço e
+  código de teste explicitamente sem associação comercial ao feijão ilustrado.
+
+### Validação e limites
+
+23 testes passaram, incluindo geometria do recorte, dígito de controle, extração
+de preço/embalagem e tratamento de promoções. No navegador: imagem 1400×1000
+recortada para 1120×800 reconheceu nome, marca, 1 kg, R$ 8,90 e código 4006381333931.
+Outro teste usou apenas as barras, sem números impressos, e reconheceu o código.
+A lista ilustrada foi criada com 12 pendências e carrinho zerado.
+
+OCR não equivale à compreensão multimodal por IA: reflexos, etiquetas pequenas,
+preços divididos em linhas e marcas sem identificação explícita podem exigir
+correção. Revisão continua obrigatória antes de salvar. O primeiro uso exige
+conexão para baixar o leitor; funcionamento posterior depende dos recursos em cache.
+Continuam pendentes o assistente de IA com chave própria, voz, estoque e previsões.
+
+Referências: https://github.com/naptha/tesseract.js e
+https://github.com/zxing-js/browser. Créditos específicos de cada foto ficam no
+manifesto assets/demo-sources.json. A fonte Open Food Facts foi consultada, mas a
+consulta estava indisponível; as fotos efetivamente usadas vieram do Commons.

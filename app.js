@@ -1,6 +1,6 @@
-import { criarItem, criarPlanejado, subtotal, total, moeda, exemplos, comprado, restante, colocarPlanejado, editarCarrinho, planejarCompra, migrarEstado } from './core.js?v=6';
-import { iniciarCatalogo } from './catalog.js?v=6';
-import { nomeApresentacao } from './catalog-core.js?v=6';
+import { criarItem, criarPlanejado, subtotal, total, moeda, exemplos, comprado, restante, colocarPlanejado, editarCarrinho, planejarCompra, migrarEstado } from './core.js?v=7';
+import { iniciarCatalogo } from './catalog.js?v=7';
+import { nomeApresentacao } from './catalog-core.js?v=7';
 
 const $ = selector => document.querySelector(selector);
 const REAL_KEY = 'feira-em-dia:v1';
@@ -28,6 +28,14 @@ let currentBucket = 'planned';
 let editBucket = 'planned';
 let toastTimer;
 let catalogUI;
+let catalogProducts = new Map();
+const planPhotoUrls = [], cartPhotoUrls = [];
+function clearPhotos(urls) { while (urls.length) URL.revokeObjectURL(urls.pop()); }
+function itemPhoto(item, urls) {
+  const product = catalogProducts.get(item.catalogId);
+  if (!product?.photo) return null;
+  const image = document.createElement('img'); image.className = 'item-thumbnail'; image.alt = `Foto ilustrativa de ${item.name}`; image.loading = 'lazy'; image.src = URL.createObjectURL(product.photo); urls.push(image.src); return image;
+}
 function notify(message) {
   const formError = document.querySelector('dialog[open] .form-error');
   if (formError) { formError.textContent = message; return; }
@@ -101,6 +109,7 @@ function pick(plan) {
   $('#pick-dialog').showModal();
 }
 function renderPlans() {
+  clearPhotos(planPhotoUrls);
   const list = $('#planned-items'); list.replaceChildren();
   if (!state.planned.length) list.append(node('div', 'empty', 'Sua lista está vazia. Adicione o que pretende comprar ou crie uma lista a partir do histórico.'));
   for (const plan of state.planned) {
@@ -109,7 +118,8 @@ function renderPlans() {
     const heading = node('div', 'plan-heading');
     const info = node('div'); info.append(node('h3', '', plan.name), node('p', '', `Planejado: ${quantidade(plan.quantity)} ${plan.unit} · Peguei: ${quantidade(taken)} ${plan.unit}`));
     const status = plan.skipped ? 'Dispensado nesta compra' : left === 0 ? 'Tudo no carrinho ✓' : `Faltam ${quantidade(left)} ${plan.unit}`;
-    heading.append(info, node('span', `plan-status${left === 0 ? ' resolved' : ''}`, status)); card.append(heading);
+    const productHeading = node('div', 'plan-product'), photo = itemPhoto(plan, planPhotoUrls); if (photo) productHeading.append(photo); productHeading.append(info);
+    heading.append(productHeading, node('span', `plan-status${left === 0 ? ' resolved' : ''}`, status)); card.append(heading);
     card.append(node('p', 'plan-price', plan.priceCents == null ? 'Preço ainda não informado' : `Referência: ${moeda(plan.priceCents)} / ${plan.unit} · conferir na loja`));
     const actions = node('div', 'plan-actions');
     if (left > 0) actions.append(action('Pegar produto →', () => pick(plan), 'button dark'));
@@ -124,6 +134,7 @@ function renderPlans() {
   }
 }
 function renderCart() {
+  clearPhotos(cartPhotoUrls);
   const list = $('#items'); list.replaceChildren();
   if (!state.cart.length) list.append(node('div', 'empty', 'Seu carrinho está vazio. Pegue um produto da lista ou adicione aqui o que já colocou no carrinho.'));
   for (const item of state.cart) {
@@ -137,7 +148,7 @@ function renderCart() {
         state.cart.splice(Math.min(index, state.cart.length), 0, { ...item, ...(item.planId && !state.planned.some(p => p.id === item.planId) ? { planId: undefined } : {}) });
       });
     }));
-    row.append(node('span', 'product-mark', '▧'), details, node('strong', 'item-price', moeda(subtotal(item))), actions); list.append(row);
+    row.append(itemPhoto(item, cartPhotoUrls) || node('span', 'product-mark', '▧'), details, node('strong', 'item-price', moeda(subtotal(item))), actions); list.append(row);
   }
 }
 function renderHistory() {
@@ -277,11 +288,19 @@ $('#today').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'lon
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => notify('Acesso offline indisponível neste navegador.'));
 catalogUI = iniciarCatalogo({
   getScope: () => demoMode ? 'demo' : 'real', notify,
+  onCatalogChanged: products => { catalogProducts = new Map(products.map(product => [product.id, product])); renderPlans(); renderCart(); },
   addToList: product => { show('carrinho'); bucket('planned'); openProduct('planned', null, product); },
   async enterDemo() {
     if (!save()) return false;
     demoMode = true; localStorage.setItem(MODE_KEY, 'demo'); state = load(DEMO_KEY); state.demo = true;
     save(); render(); return true;
+  },
+  async createDemoList(products) {
+    if (!demoMode) return;
+    if ((state.planned.length || state.cart.length) && !await confirmar('Substituir apenas a lista e o carrinho demonstrativos por uma lista de produtos com fotos? Seus dados pessoais serão preservados.')) return;
+    state.planned = products.map(product => ({ ...criarPlanejado({ id: uid(), name: nomeApresentacao(product), price: (product.priceCents / 100).toFixed(2), quantity: '1', unit: product.unit }), catalogId: product.id }));
+    state.cart = []; state.market = 'Mercado Jardim · fictício'; state.date = hoje(); state.demo = true;
+    save(); render(); bucket('planned'); show('carrinho'); notify(`Lista fictícia criada com ${products.length} produtos ilustrados. Os preços são simulados; as fotos podem ser consultadas em Produtos.`);
   }
 });
 render(); if (storageFailed) notify('Não foi possível recuperar os dados locais. Os registros anteriores não serão sobrescritos.');

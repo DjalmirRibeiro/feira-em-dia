@@ -1,0 +1,16 @@
+# Créditos das imagens demonstrativas
+
+Consultadas em 13/11/2026. Preços, quantidades e códigos DEMO são fictícios. As fotos são ilustrativas; não garantem variedade, marca ou embalagem. Miniaturas convertidas para JPEG, distribuídas sob as licenças indicadas.
+
+- **exemplo-banana-prata**: [File:Banana-Single.jpg](https://commons.wikimedia.org/wiki/File:Banana-Single.jpg) — Evan-Amos. [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0). Arquivo: `assets/demo/banana-prata.jpg`.
+- **exemplo-maca**: [File:Red Apple.jpg](https://commons.wikimedia.org/wiki/File:Red_Apple.jpg) — Abhijit Tembhekar from Mumbai, India. [CC BY 2.0](https://creativecommons.org/licenses/by/2.0). Arquivo: `assets/demo/maca.jpg`.
+- **exemplo-laranja**: [File:Oranges - whole-halved-segment.jpg](https://commons.wikimedia.org/wiki/File:Oranges_-_whole-halved-segment.jpg) — Ivar Leidus. [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0). Arquivo: `assets/demo/laranja.jpg`.
+- **exemplo-mamao**: [File:Papaya - longitudinal section close-up view.jpg](https://commons.wikimedia.org/wiki/File:Papaya_-_longitudinal_section_close-up_view.jpg) — Ivar Leidus. [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0). Arquivo: `assets/demo/mamao.jpg`.
+- **exemplo-tomate**: [File:Tomato je (cropped).jpg](https://commons.wikimedia.org/wiki/File:Tomato_je_(cropped).jpg) — Softeis. [CC BY-SA 3.0](http://creativecommons.org/licenses/by-sa/3.0/). Arquivo: `assets/demo/tomate.jpg`.
+- **exemplo-cebola**: [File:Red Onion on White.JPG](https://commons.wikimedia.org/wiki/File:Red_Onion_on_White.JPG) — Colin. [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0). Arquivo: `assets/demo/cebola.jpg`.
+- **exemplo-batata**: [File:Kongo potato raw.jpg](https://commons.wikimedia.org/wiki/File:Kongo_potato_raw.jpg) — Tappinen. [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0). Arquivo: `assets/demo/batata.jpg`.
+- **exemplo-cenoura**: [File:Carrots of many colors.jpg](https://commons.wikimedia.org/wiki/File:Carrots_of_many_colors.jpg) — Stephen Ausmus. [Public domain](https://commons.wikimedia.org/wiki/Commons:Licensing). Arquivo: `assets/demo/cenoura.jpg`.
+- **exemplo-alface**: [File:Lettuce iceberg variety from Salinas valley California.jpeg](https://commons.wikimedia.org/wiki/File:Lettuce_iceberg_variety_from_Salinas_valley_California.jpeg) — Colaboradores do Wikimedia Commons. [Public domain](https://commons.wikimedia.org/wiki/Commons:Licensing). Arquivo: `assets/demo/alface.jpg`.
+- **exemplo-alho**: [File:Garlic bulbs and cloves.jpg](https://commons.wikimedia.org/wiki/File:Garlic_bulbs_and_cloves.jpg) — Ivar Leidus. [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0). Arquivo: `assets/demo/alho.jpg`.
+- **exemplo-arroz-branco**: [File:Raw rice (white).jpg](https://commons.wikimedia.org/wiki/File:Raw_rice_(white).jpg) — Vimkay. [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0). Arquivo: `assets/demo/arroz-branco.jpg`.
+- **exemplo-feijao-carioca**: [File:Pinto Beans Seeds.jpg](https://commons.wikimedia.org/wiki/File:Pinto_Beans_Seeds.jpg) — Sanjay Acharya. [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0). Arquivo: `assets/demo/feijao-carioca.jpg`.

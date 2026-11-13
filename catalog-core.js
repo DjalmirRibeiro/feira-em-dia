@@ -1,4 +1,4 @@
-import { criarPlanejado } from './core.js?v=6';
+import { criarPlanejado } from './core.js?v=7';
 
 export const CATEGORIAS = ['Alimentos', 'Bebidas', 'Hortifruti', 'Limpeza', 'Higiene', 'Saúde', 'Outros'];
 const texto = (value, limit) => String(value ?? '').trim().slice(0, limit);

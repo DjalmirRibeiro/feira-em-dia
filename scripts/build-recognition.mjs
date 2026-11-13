@@ -1,0 +1,12 @@
+import { build } from 'esbuild';
+import { mkdir, copyFile, readdir } from 'node:fs/promises';
+const output = 'vendor/v7';
+await mkdir(`${output}/core`, { recursive: true }); await mkdir(`${output}/lang`, { recursive: true });
+await build({ entryPoints: ['scripts/recognition-entry.js'], outfile: `${output}/recognition.js`, bundle: true, format: 'esm', platform: 'browser', target: 'es2020', minify: true, legalComments: 'eof' });
+await copyFile('node_modules/tesseract.js/dist/worker.min.js', `${output}/worker.min.js`);
+for (const name of await readdir('node_modules/tesseract.js-core')) if (name.endsWith('.wasm.js') || name.endsWith('.wasm')) await copyFile(`node_modules/tesseract.js-core/${name}`, `${output}/core/${name}`);
+await copyFile('node_modules/tesseract.js-core/LICENSE', `${output}/LICENSE-tesseract-core`);
+await copyFile('node_modules/@zxing/library/LICENSE', `${output}/LICENSE-zxing`);
+await copyFile('node_modules/@zxing/browser/LICENSE', `${output}/LICENSE-zxing-browser`);
+await copyFile('node_modules/tesseract.js/LICENSE.md', `${output}/LICENSE-tesseract`);
+console.log('Leitor local empacotado. Arquivo de idioma deve existir em vendor/v7/lang.');

@@ -44,8 +44,12 @@ export async function semearExemplos(products) {
   await transact('readwrite', store => {
     const request = store.index('scope').getAll('demo');
     request.onsuccess = () => {
-      const existing = new Set(request.result.map(p => p.id)), codes = new Set(request.result.filter(p => !p.archived).map(p => p.barcode?.toLowerCase()).filter(Boolean));
-      for (const product of products) if (!existing.has(product.id) && !codes.has(product.barcode.toLowerCase())) store.put({ ...product, scope: 'demo', key: `demo:${product.id}`, updatedAt: new Date().toISOString() });
+      const existing = new Map(request.result.map(p => [p.id, p])), codes = new Set(request.result.filter(p => !p.archived).map(p => p.barcode?.toLowerCase()).filter(Boolean));
+      for (const product of products) {
+        const previous = existing.get(product.id);
+        if (!previous && !codes.has(product.barcode.toLowerCase())) store.put({ ...product, scope: 'demo', key: `demo:${product.id}`, updatedAt: new Date().toISOString() });
+        else if (previous?.synthetic && !previous.photo && product.photo) store.put({ ...previous, photo: product.photo, imageSource: product.imageSource });
+      }
     };
   });
 }
@@ -56,11 +60,11 @@ export async function prepararFoto(file) {
   try {
     const image = new Image();
     await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = () => reject(new Error('Não foi possível ler esta foto. Tente uma imagem JPG, PNG ou WebP.')); image.src = url; });
-    const scale = Math.min(1, 1280 / Math.max(image.naturalWidth, image.naturalHeight));
+    const scale = Math.min(1, 1920 / Math.max(image.naturalWidth, image.naturalHeight));
     const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(image.naturalWidth * scale)); canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
     const ctx = canvas.getContext('2d'); if (!ctx) throw new Error('Este navegador não conseguiu preparar a foto.');
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const photo = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.82));
+    const photo = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.86));
     if (!photo || photo.size > 2 * 1024 * 1024) throw new Error('A foto ficou muito grande. Tente fotografar mais perto e com resolução menor.');
     return photo;
   } finally { URL.revokeObjectURL(url); }
