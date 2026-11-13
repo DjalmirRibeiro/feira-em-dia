@@ -439,3 +439,46 @@ Próxima entrega prioritária: catálogo pessoal e captura de foto real com revi
 Organizar persistência de fotos em IndexedDB antes de salvá-las; depois integrar OCR
 e IA conforme a seção 12. Não exibir botões de câmera/voz como funcionais antes de
 essas capacidades estarem disponíveis. Estoque e previsões seguem na sequência.
+
+## 15. Catálogo pessoal e captura de imagens — versão 0.3.0
+
+### Entregue
+
+- Tela Produtos com cadastro de nome, marca, apresentação, categoria e unidade.
+- Código de barras ou código interno digitado, sem decodificação automática ainda.
+- Preço de referência opcional com data e supermercado, separado do preço pago.
+- Foto do produto e foto da etiqueta pela captura do navegador ou galeria.
+- Revisão manual antes de salvar; nenhum dado é inferido da foto nesta etapa.
+- Fotos preparadas no dispositivo: até 1280 px no maior lado, JPEG, até 2 MB por
+  imagem final. Entrada limitada a 20 MB; erro de leitura permite tentar novamente.
+- Produtos e blobs de fotos persistidos juntos em IndexedDB. Compras continuam no
+  localStorage; não há envio de imagens ou cadastro a servidor.
+- Busca por termos combinados sem distinção de acentos, marca, apresentação e código.
+- Categoria e visualização de arquivados; arquivar é reversível e preserva listas.
+- Código duplicado entre produtos ativos da mesma base é recusado, inclusive em
+  restauração, com validação na transação de escrita do catálogo.
+- Selecionar produto do catálogo preenche a inclusão na lista; o usuário informa a
+  quantidade. O carrinho só soma quando o produto é efetivamente pego.
+- Sessenta produtos fictícios em categorias domésticas, na base de demonstração.
+  Códigos DEMO são internos e não alegam corresponder a produtos comerciais reais.
+- A exportação inclui catálogo, arquivados e fotos codificadas no JSON da base
+  aberta. Se o catálogo estiver indisponível, gerar cópia parcial das compras com
+  aviso explícito. Restauração do arquivo permanece pendente.
+
+### Validação
+
+Dezoito testes automatizados passaram: os onze anteriores e sete de catálogo,
+incluindo datas inválidas, preço desconhecido, busca, arquivamento, exemplos únicos
+e preservação do vínculo ao comprar, editar e planejar novamente.
+
+No navegador: anexar duas imagens fictícias, salvar, recarregar, conferir ambas,
+buscar pelo código, adicionar à lista sem somar ao carrinho, arquivar/restaurar e
+exportar JSON contendo as duas imagens. A demonstração foi conferida separadamente
+da base pessoal. O acionamento da captura foi testado com arquivo de imagem, sem
+comprovar ainda uso da câmera física de Android/iOS.
+
+### Próxima prioridade
+
+Leitura assistida da etiqueta e configuração segura do serviço de IA, mantendo
+revisão e correção antes da inclusão. O usuário poderá começar a testar agora os
+cadastros e fotos reais de casa enquanto essa integração é desenvolvida.

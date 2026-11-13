@@ -37,7 +37,7 @@ export function colocarPlanejado(state, { planId, quantity, price, id }) {
   if (!plan) throw new Error('Este produto não está mais na lista.');
   const item = criarItem({ id, name: plan.name, price, quantity, unit: plan.unit });
   if (mil(item.quantity) > mil(restante(plan, state.cart))) throw new Error('A quantidade é maior que o que falta. Edite a quantidade planejada primeiro.');
-  return { ...state, planned: state.planned.map(row => row.id === planId ? { ...row, priceCents: item.priceCents } : row), cart: [...state.cart, { ...item, planId }] };
+  return { ...state, planned: state.planned.map(row => row.id === planId ? { ...row, priceCents: item.priceCents } : row), cart: [...state.cart, { ...item, planId, ...(plan.catalogId ? { catalogId: plan.catalogId } : {}) }] };
 }
 export function editarCarrinho(state, item) {
   const previous = state.cart.find(row => row.id === item.id);
@@ -49,7 +49,7 @@ export function editarCarrinho(state, item) {
     const other = state.cart.filter(row => row.id !== item.id);
     if (mil(item.quantity) + mil(comprado(plan, other)) > mil(plan.quantity)) throw new Error('A quantidade excede o planejado. Edite a lista primeiro.');
   }
-  return { ...state, cart: state.cart.map(row => row.id === item.id ? { ...item, ...(previous.planId ? { planId: previous.planId } : {}) } : row) };
+  return { ...state, cart: state.cart.map(row => row.id === item.id ? { ...item, ...(previous.planId ? { planId: previous.planId } : {}), ...(previous.catalogId ? { catalogId: previous.catalogId } : {}) } : row) };
 }
 export function planejarCompra(purchase, newId) {
   const planned = (purchase.planned || []).map(item => {
@@ -57,7 +57,7 @@ export function planejarCompra(purchase, newId) {
     return { ...item, id: newId(), skipped: false, priceCents: lastPaid?.priceCents ?? item.priceCents };
   });
   const extras = (purchase.planned?.length ? purchase.items.filter(item => !item.planId) : purchase.items);
-  for (const item of extras) planned.push({ id: newId(), name: item.name, quantity: item.quantity, unit: item.unit, priceCents: item.priceCents, skipped: false });
+  for (const item of extras) planned.push({ id: newId(), name: item.name, quantity: item.quantity, unit: item.unit, priceCents: item.priceCents, skipped: false, ...(item.catalogId ? { catalogId: item.catalogId } : {}) });
   return planned;
 }
 export function migrarEstado(saved, date) {

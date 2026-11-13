@@ -1,4 +1,6 @@
-import { criarItem, criarPlanejado, subtotal, total, moeda, exemplos, comprado, restante, colocarPlanejado, editarCarrinho, planejarCompra, migrarEstado } from './core.js?v=5';
+import { criarItem, criarPlanejado, subtotal, total, moeda, exemplos, comprado, restante, colocarPlanejado, editarCarrinho, planejarCompra, migrarEstado } from './core.js?v=6';
+import { iniciarCatalogo } from './catalog.js?v=6';
+import { nomeApresentacao } from './catalog-core.js?v=6';
 
 const $ = selector => document.querySelector(selector);
 const REAL_KEY = 'feira-em-dia:v1';
@@ -25,6 +27,7 @@ let currentView = 'inicio';
 let currentBucket = 'planned';
 let editBucket = 'planned';
 let toastTimer;
+let catalogUI;
 function notify(message) {
   const formError = document.querySelector('dialog[open] .form-error');
   if (formError) { formError.textContent = message; return; }
@@ -69,14 +72,16 @@ function undo(message, restore) {
   notify(message);
   $('#toast').append(action('Desfazer', () => { restore(); save(); render(); $('#toast').hidden = true; }));
 }
-function openProduct(destination = currentBucket, item = null) {
+function openProduct(destination = currentBucket, item = null, fromCatalog = null) {
   editBucket = destination;
+  const source = item || (fromCatalog ? { ...fromCatalog, name: nomeApresentacao(fromCatalog), quantity: 1 } : null);
   $('#item-form').reset(); $('#edit-id').value = item?.id || '';
+  $('#catalog-id').value = item?.catalogId || fromCatalog?.id || '';
   $('#destination').value = destination; $('#destination').disabled = Boolean(item);
   $('#form-title').textContent = item ? 'Editar produto' : 'Adicionar produto';
-  $('#product').value = item?.name || ''; $('#unit').value = item?.unit || 'un';
-  $('#quantity').value = item ? String(item.quantity).replace('.', ',') : '1';
-  $('#price').value = item?.priceCents != null ? (item.priceCents / 100).toFixed(2).replace('.', ',') : '';
+  $('#product').value = source?.name || ''; $('#unit').value = source?.unit || 'un';
+  $('#quantity').value = source ? String(source.quantity).replace('.', ',') : '1';
+  $('#price').value = source?.priceCents != null ? (source.priceCents / 100).toFixed(2).replace('.', ',') : '';
   const linked = destination === 'cart' && Boolean(item?.planId);
   $('#product').readOnly = linked; $('#unit').disabled = linked;
   $('#item-error').textContent = ''; updateDestination(); $('#item-dialog').showModal();
@@ -182,7 +187,7 @@ function render() {
   $('#month-total').textContent = moeda(month.reduce((sum, purchase) => sum + total(purchase.items), 0));
   $('#month-count').textContent = demoMode ? 'Indicadores reais não são alterados no modo de exemplo' : `${month.length} compras reais registradas neste mês`;
   $('#history-count').textContent = demoMode ? '—' : state.history.filter(p => !p.demo).length;
-  renderPlans(); renderCart(); renderHistory(); bucket(currentBucket);
+  renderPlans(); renderCart(); renderHistory(); bucket(currentBucket); catalogUI?.refresh();
 }
 
 document.querySelectorAll('[data-view]').forEach(el => el.addEventListener('click', () => show(el.dataset.view)));
@@ -190,6 +195,8 @@ document.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click'
 $('#show-planned').addEventListener('click', () => bucket('planned'));
 $('#show-cart').addEventListener('click', () => bucket('cart'));
 $('#add-product').addEventListener('click', () => openProduct()); $('#sticky-add').addEventListener('click', () => openProduct());
+$('#open-catalog').addEventListener('click', () => show('catalogo'));
+$('#item-use-catalog').addEventListener('click', () => { $('#item-dialog').close(); show('catalogo'); });
 $('#close-item').addEventListener('click', () => $('#item-dialog').close()); $('#close-pick').addEventListener('click', () => $('#pick-dialog').close());
 $('#destination').addEventListener('change', updateDestination);
 $('#item-form').addEventListener('submit', event => {
@@ -198,12 +205,12 @@ $('#item-form').addEventListener('submit', event => {
     const editId = $('#edit-id').value, destination = editId ? editBucket : $('#destination').value;
     const input = { id: editId || uid(), name: $('#product').value, price: $('#price').value, quantity: $('#quantity').value, unit: $('#unit').value };
     if (destination === 'planned') {
-      const plan = criarPlanejado(input), old = state.planned.find(p => p.id === editId);
+      const plan = { ...criarPlanejado(input), ...($('#catalog-id').value ? { catalogId: $('#catalog-id').value } : {}) }, old = state.planned.find(p => p.id === editId);
       if (old && comprado(old, state.cart) > 0 && (plan.name !== old.name || plan.unit !== old.unit)) throw new Error('Não é possível trocar nome ou unidade de um produto já pego. Retire-o do carrinho primeiro.');
       if (old && Math.round(plan.quantity * 1000) < Math.round(comprado(old, state.cart) * 1000)) throw new Error('A quantidade planejada não pode ser menor que a quantidade no carrinho.');
       if (old) state.planned = state.planned.map(p => p.id === editId ? { ...plan, skipped: old.skipped } : p); else state.planned.push(plan);
     } else {
-      const item = criarItem(input);
+      const item = { ...criarItem(input), ...($('#catalog-id').value ? { catalogId: $('#catalog-id').value } : {}) };
       if (editId) state = editarCarrinho(state, item); else state.cart.push(item);
     }
     const saved = save(); $('#item-dialog').close(); bucket(destination); render();
@@ -245,9 +252,19 @@ $('#finish').addEventListener('click', async () => {
   state.cart = []; state.planned = []; state.demo = demoMode;
   const saved = save(); render(); show('historico'); if (saved) notify('Compra salva. A lista original e os preços pagos foram preservados no histórico.');
 });
-$('#export').addEventListener('click', () => {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }));
-  const a = node('a'); a.href = url; a.download = `feira-em-dia-${demoMode ? 'exemplos-' : ''}${hoje()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+$('#export').addEventListener('click', async () => {
+  $('#export').disabled = $('#export-mobile').disabled = true;
+  try {
+    const snapshot = structuredClone(state), scope = demoMode;
+    let catalog, catalogWarning;
+    try { catalog = await catalogUI.exportData(); }
+    catch (error) { catalog = null; catalogWarning = error.message; }
+    if (scope !== demoMode) throw new Error('A base mudou durante a exportação. Tente novamente.');
+    const url = URL.createObjectURL(new Blob([JSON.stringify({ ...snapshot, catalog, ...(catalogWarning ? { catalogWarning } : {}), exportedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' }));
+    const a = node('a'); a.href = url; a.download = `feira-em-dia-${scope ? 'exemplos-' : ''}${hoje()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+    notify(catalogWarning ? `Cópia parcial: compras exportadas, mas catálogo e fotos não puderam ser lidos. ${catalogWarning}` : 'Cópia gerada com compras, catálogo e fotos da base aberta.');
+  } catch (error) { notify(`Exportação não concluída: ${error.message}`); }
+  finally { $('#export').disabled = $('#export-mobile').disabled = false; }
 });
 $('#export-mobile').addEventListener('click', () => $('#export').click());
 let installPrompt;
@@ -258,4 +275,13 @@ function connection() { $('#connection').textContent = navigator.onLine ? '● O
 window.addEventListener('online', connection); window.addEventListener('offline', connection); connection();
 $('#today').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => notify('Acesso offline indisponível neste navegador.'));
+catalogUI = iniciarCatalogo({
+  getScope: () => demoMode ? 'demo' : 'real', notify,
+  addToList: product => { show('carrinho'); bucket('planned'); openProduct('planned', null, product); },
+  async enterDemo() {
+    if (!save()) return false;
+    demoMode = true; localStorage.setItem(MODE_KEY, 'demo'); state = load(DEMO_KEY); state.demo = true;
+    save(); render(); return true;
+  }
+});
 render(); if (storageFailed) notify('Não foi possível recuperar os dados locais. Os registros anteriores não serão sobrescritos.');
