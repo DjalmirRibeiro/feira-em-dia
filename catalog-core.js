@@ -1,4 +1,4 @@
-import { criarPlanejado } from './core.js?v=7';
+import { criarPlanejado } from './core.js?v=8';
 
 export const CATEGORIAS = ['Alimentos', 'Bebidas', 'Hortifruti', 'Limpeza', 'Higiene', 'Saúde', 'Outros'];
 const texto = (value, limit) => String(value ?? '').trim().slice(0, limit);
@@ -8,11 +8,14 @@ export function validarProduto(input) {
   const barcode = String(input.barcode ?? '').trim();
   if (barcode && !/^[A-Za-z0-9 -]{4,48}$/.test(barcode)) throw new Error('Informe um código de 4 a 48 caracteres, com letras, números, espaços ou hífen.');
   const category = CATEGORIAS.includes(input.category) ? input.category : 'Outros';
+  const contentQuantity = String(input.contentQuantity ?? '').trim() ? Number(String(input.contentQuantity).replace(',','.')) : null;
+  if (contentQuantity !== null && (!Number.isFinite(contentQuantity) || contentQuantity<=0 || contentQuantity>100000 || Math.abs(contentQuantity*1000-Math.round(contentQuantity*1000))>0.00001 || !['un','g','kg','ml','L'].includes(input.contentUnit))) throw new Error('Confira o conteúdo e a unidade de cada embalagem.');
+  if(input.stockByContent&&(!contentQuantity||input.unit!=='un'))throw new Error('Para controlar pelo conteúdo, informe o conteúdo de uma embalagem vendida por unidade.');
   const priceDate = texto(input.priceDate, 10);
   if (validated.priceCents !== null && !/^\d{4}-\d{2}-\d{2}$/.test(priceDate)) throw new Error('Informe a data do preço de referência.');
   if (priceDate && (Number.isNaN(Date.parse(`${priceDate}T12:00:00Z`)) || new Date(`${priceDate}T12:00:00Z`).toISOString().slice(0, 10) !== priceDate)) throw new Error('A data do preço não é válida.');
   return { id: input.id, name, brand: texto(input.brand, 80), presentation: texto(input.presentation, 80), category, barcode,
-    unit: input.unit, priceCents: validated.priceCents, priceDate: validated.priceCents === null ? '' : priceDate,
+    unit: input.unit,contentQuantity,contentUnit:contentQuantity===null?'':input.contentUnit,stockByContent:Boolean(input.stockByContent),priceCents: validated.priceCents, priceDate: validated.priceCents === null ? '' : priceDate,
     storeName: validated.priceCents === null ? '' : texto(input.storeName, 100), archived: Boolean(input.archived) };
 }
 export const nomeApresentacao = product => [product.name, product.brand, product.presentation].filter(Boolean).join(' · ');
@@ -38,7 +41,10 @@ export function produtosExemplo() {
     const [name, presentation] = entry.split('|');
     const id = `exemplo-${normalizar(name).replace(/[^a-z0-9]+/g, '-')}`;
     const index = groups.flatMap(group => group[1]).indexOf(entry);
+    const content = presentation.match(/^(\d+(?:[,.]\d+)?)\s*(kg|g|ml|litros?)$/i);
     return { ...validarProduto({ id, name, brand: category === 'Hortifruti' ? '' : 'Marca exemplo', presentation, category, barcode: `DEMO-${String(index + 1).padStart(4, '0')}`,
+      contentQuantity:content?content[1]:null,contentUnit:content?(content[2].toLowerCase().startsWith('litro')?'L':content[2].toLowerCase()):'',
+      stockByContent:Boolean(content&&category!=='Higiene'&&category!=='Limpeza'&&category!=='Saúde'),
       unit: presentation === 'A granel' ? 'kg' : 'un', price: ((350 + index * 71) / 100).toFixed(2), priceDate: '2026-11-12', storeName: 'Mercado Jardim · fictício' }), synthetic: true };
   }));
 }

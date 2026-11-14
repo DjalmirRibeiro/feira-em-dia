@@ -61,6 +61,7 @@ export function planejarCompra(purchase, newId) {
   return planned;
 }
 export function migrarEstado(saved, date) {
-  if (!saved || ![1, 2].includes(saved.version) || !Array.isArray(saved.cart) || !Array.isArray(saved.history)) throw new Error('Formato de dados não reconhecido.');
-  return { ...saved, version: 2, planned: saved.version === 2 && Array.isArray(saved.planned) ? saved.planned : [], date: saved.date || date };
+  if (!saved || ![1, 2, 3].includes(saved.version) || !Array.isArray(saved.cart) || !Array.isArray(saved.history)) throw new Error('Formato de dados não reconhecido.');
+  return { ...saved, version: 3, planned: saved.version >= 2 && Array.isArray(saved.planned) ? saved.planned : [], date: saved.date || date,
+    inventory: saved.inventory || {lots:[],moves:[]},budgets:saved.budgets||{},executedCommands:saved.executedCommands||[] };
 }

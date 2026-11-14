@@ -48,7 +48,7 @@ export async function semearExemplos(products) {
       for (const product of products) {
         const previous = existing.get(product.id);
         if (!previous && !codes.has(product.barcode.toLowerCase())) store.put({ ...product, scope: 'demo', key: `demo:${product.id}`, updatedAt: new Date().toISOString() });
-        else if (previous?.synthetic && !previous.photo && product.photo) store.put({ ...previous, photo: product.photo, imageSource: product.imageSource });
+        else if(previous?.synthetic){const enriched={...previous};let changed=false;if(!previous.photo&&product.photo){enriched.photo=product.photo;enriched.imageSource=product.imageSource;changed=true;}if(!previous.contentQuantity&&product.contentQuantity){enriched.contentQuantity=product.contentQuantity;enriched.contentUnit=product.contentUnit;changed=true;}if(previous.stockByContent===undefined){enriched.stockByContent=product.stockByContent;changed=true;}if(changed)store.put(enriched);}
       }
     };
   });
@@ -70,3 +70,8 @@ export async function prepararFoto(file) {
   } finally { URL.revokeObjectURL(url); }
 }
 export const fotoParaBackup = blob => blob ? new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(new Error('Não foi possível exportar uma foto.')); reader.readAsDataURL(blob); }) : Promise.resolve(null);
+export async function restaurarProdutosNovos(scope,records){
+  scopeKey(scope);let added=0;
+  const decoded=records.map(product=>{const decode=value=>{if(!value)return null;const [header,data]=value.split(',');const bytes=Uint8Array.from(atob(data),c=>c.charCodeAt(0));return new Blob([bytes],{type:header.slice(5,header.indexOf(';'))});};return{...product,photo:decode(product.photo),labelPhoto:decode(product.labelPhoto)};});
+  await transact('readwrite',(store,done,fail)=>{const request=store.index('scope').getAll(scope);request.onsuccess=()=>{const existing=new Map(request.result.map(p=>[p.id,p]));const codes=new Map(request.result.filter(p=>!p.archived&&p.barcode).map(p=>[p.barcode.toLowerCase(),p.id]));for(const product of decoded){if(existing.has(product.id))continue;if(!product.archived&&product.barcode&&codes.has(product.barcode.toLowerCase())){fail(new Error('Um código do backup já existe em outro cadastro. Nenhum produto foi importado.'));return;}if(product.barcode&&!product.archived)codes.set(product.barcode.toLowerCase(),product.id);store.put({...product,key:`${scope}:${product.id}`,scope,updatedAt:new Date().toISOString()});added++;}done(added);};});return added;
+}

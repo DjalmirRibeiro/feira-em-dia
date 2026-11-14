@@ -46,6 +46,6 @@ test('reutilização restaura planejamento integral, reativa dispensados e usa �
 test('migração mantém compras antigas e permite planejar a partir do histórico v1', () => {
   const old = { version: 1, cart: [item('10', '1')], history: [{ items: [item('5', '2')] }], market: 'Mercado' }, before = JSON.stringify(old);
   const migrated = migrarEstado(old, '2026-11-12');
-  assert.equal(migrated.version, 2); assert.deepEqual(migrated.cart, old.cart); assert.deepEqual(migrated.planned, []);
+  assert.equal(migrated.version, 3); assert.deepEqual(migrated.cart, old.cart); assert.deepEqual(migrated.planned, []);
   assert.equal(planejarCompra(migrated.history[0], () => 'nova')[0].quantity, 2); assert.equal(JSON.stringify(old), before);
 });

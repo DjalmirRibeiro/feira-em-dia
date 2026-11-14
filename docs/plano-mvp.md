@@ -527,3 +527,64 @@ Referências: https://github.com/naptha/tesseract.js e
 https://github.com/zxing-js/browser. Créditos específicos de cada foto ficam no
 manifesto assets/demo-sources.json. A fonte Open Food Facts foi consultada, mas a
 consulta estava indisponível; as fotos efetivamente usadas vieram do Commons.
+
+
+## 17. Ciclo completo demonstrativo — versão 0.5.0 — 14/11/2026
+
+Esta atualização conclui o escopo demonstrável local do MVP. O roteiro completo
+está em `docs/roteiro-mvp.md`; os dados fictícios permanecem separados da base pessoal.
+As notas anteriores registram o histórico de versões; pendências ali citadas foram
+substituídas pelo estado descrito abaixo.
+
+### Funcionalidades entregues
+
+- Estoque por lote, categoria, validade, local e abertura; entrada manual ou revisão
+  de compra concluída; proteção contra a entrada duplicada da mesma compra/item.
+- Consumo, descarte, correção de saldo e reversões rastreáveis. Unidades compatíveis
+  convertem kg/g e L/ml; não se permite saldo negativo, inclusive retroativamente.
+- Conteúdo por embalagem cadastrado explicitamente e escolha entre contar unidades
+  ou peso/volume. A revisão sempre permite corrigir as quantidades antes da entrada.
+- Previsão por produto com no mínimo duas baixas e sete dias observados; janela de
+  até sessenta dias, vencimentos, indicação de histórico insuficiente e reposição
+  arredondada para embalagens. Não há garantia de alimentação completa por período.
+- Dashboard mensal com orçamento, categorias e supermercados; comparação opcional
+  de dias equivalentes. Variação de preço dos mesmos cadastros/apresentações aparece
+  separada da variação de gasto total e das quantidades compradas.
+- Assistente local por regras: pendências, duração e gastos; adição, retirada e
+  consumo propostos para revisão. Exemplos incluem retirar dois quilos de feijão
+  de uma lista de pacotes com conteúdo de um quilo explicitamente cadastrado.
+- Ditado conforme suporte do navegador e leitura de respostas; fallback de gravação
+  para transcrição quando conectado ao gateway. Comando de voz fictício disponível
+  para testar sem microfone. Produtos de Saúde não têm interpretação de doses.
+- Gateway OpenAI com sessão temporária em memória, autenticação, origem autorizada,
+  limites, imagem recortada, Responses com contrato estrito, `store:false`, transcrição
+  e revogação. Chave transitória não vai para localStorage, backup ou repositório.
+- Exportação/restauração JSON validada, mesclando sem substituir identificadores
+  existentes; fotos opcionais e dados de Saúde excluídos por padrão.
+- Cenário com seis meses de compras, estoque e consumos fictícios, validade e relógio
+  avançável. No cenário inicial, 2 kg de arroz com consumo de 200 g/dia indicam dez
+  dias; para trinta dias a sugestão é um pacote de cinco quilos.
+- Cache PWA atualizado com todos os módulos locais e cache separado para OCR.
+
+### Validação
+
+44 testes automatizados passaram, abrangendo migração, listas, cálculos, recorte,
+OCR, unidades, saldos históricos, previsões, reposições, comparação de preços,
+backup, comandos e gateway com provedor fictício. Verificação de sintaxe de 25
+arquivos passou. No navegador em largura de celular: carga do cenário, baixa de
+200 g de arroz, mudança da previsão, proposta e confirmação de consumo simulado,
+painel de gastos e orçamento, conversões ao importar a compra, bloqueio da segunda
+entrada e exportação/restauração JSON foram conferidos. Não houve erros de console.
+
+### Dependências externas e limites explícitos
+
+O frontend é publicado no GitHub Pages. O gateway está implementado, mas ainda
+não está hospedado e não foi testado com uma chave OpenAI real. Hospedá-lo em HTTPS
+é necessário para chamadas reais pelo celular; `server/README.md` documenta a
+configuração. A demonstração permite testar os fluxos sem essa dependência.
+O ditado físico e a câmera devem continuar sendo verificados nos aparelhos finais.
+A câmera já foi testada pelo usuário; esta rodada não simula aprovação de hardware.
+Não há sincronização entre dispositivos ou login nesta versão de banco local.
+Previsões dependem de baixas consistentes e não substituem orientação médica ou
+nutricional. Um serviço público multiusuário exige autenticação individual e
+proteções próprias de produção, além do gateway privado deste MVP.

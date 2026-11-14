@@ -3,7 +3,32 @@
 PWA de compras e estoque doméstico. Interface responsiva com cores suaves de
 laranja e lilás, instalável em navegadores compatíveis, sem APK ou publicação em loja.
 
-## Versão 0.4.0 — Recorte e leitura local
+## Versão 0.5.0 — Ciclo completo do MVP demonstrativo
+
+- Estoque por lote, local, validade, consumo, descarte, correção e reversão registrada.
+- Compra concluída pode entrar no estoque após revisão, sem duplicar a mesma entrada.
+- Conteúdo de embalagem explícito: dois pacotes de 5 kg podem virar 10 kg no estoque;
+  também é possível continuar contando embalagens.
+- Previsões por item com ao menos dois consumos e sete dias observados, levando em
+  conta vencimentos; sugestões de reposição arredondadas à embalagem.
+- Gastos mensais, orçamento, supermercados, categorias e comparação de preço dos
+  mesmos cadastros/apresentações. Meses parciais podem usar dias equivalentes.
+- Assistente local por regras: consultas e propostas de adição, retirada e consumo,
+  sempre revisadas antes de alterar os dados. Ditado conforme suporte do navegador,
+  leitura de respostas e botão de comando de voz fictício para testar sem gravar.
+- Cenário isolado com seis meses de compras e relógio avançável, 60 produtos
+  fictícios e 12 fotos ilustrativas com licença e origem.
+- Exportação e restauração JSON com mesclagem por identificador, fotos opcionais e
+  inclusão de Saúde desativada inicialmente.
+- Integração OpenAI implementada em serviço separado: análise de foto, pergunta e
+  transcrição. O serviço foi testado com provedor fictício; **não está hospedado e
+  não foi validado com uma chave real**. [Configuração do gateway](server/README.md).
+
+Abra **Carregar demonstração completa** na tela inicial. Ela substitui somente o
+cenário fictício, mantendo a base pessoal separada. Para seus dados, use
+**Voltar aos meus dados**. [Roteiro de teste](docs/roteiro-mvp.md).
+
+### Recorte e leitura local
 
 - Recorte antes de guardar a foto, com arraste, controles precisos, giro e cancelamento.
 - OCR em português no navegador, sem chave de API: sugere nome, marca explícita,
@@ -31,7 +56,7 @@ Qualidade, reflexos, tamanho da letra e enquadramento afetam o reconhecimento.
 - Busca sem acentos por nome, marca, embalagem ou código; filtro por categoria.
 - Arquivar/restaurar produtos e incluir um cadastro na lista com quantidade revisável.
 - 60 exemplos fictícios em catálogo separado, com códigos internos DEMO.
-- Exportação JSON inclui metadados e fotos da base aberta; restauração ainda não implementada.
+- Exportação JSON e restauração por mesclagem incluem metadados e fotos da base aberta.
 
 ## Compras e listas
 
@@ -44,11 +69,11 @@ Qualidade, reflexos, tamanho da letra e enquadramento afetam o reconhecimento.
 - Compra com supermercado e data, histórico e reutilização de itens.
 - Demonstração com produtos fictícios em armazenamento separado das compras pessoais.
 - Migração da versão inicial preserva carrinho/histórico e guarda cópia dos dados v1.
-- Persistência local e exportação de JSON; restauração ainda não implementada.
+- Persistência local, exportação de JSON e restauração validada por mesclagem.
 - Manifesto PWA, ícones e cache offline após o primeiro acesso completo.
 
-Assistente de IA com chave própria, voz, estoque e previsões estão **planejados** e ainda
-não implementados. A análise atual é OCR local e leitura de códigos, com regras de extração.
+O assistente local e o OCR funcionam sem API paga. A análise real pela OpenAI
+depende da hospedagem separada do gateway e de chave/modelo habilitados.
 O plano completo está em [docs/plano-mvp.md](docs/plano-mvp.md).
 
 ## Acessar e instalar
@@ -90,13 +115,15 @@ uma cópia antes. Não registrar informações sensíveis na versão inicial.
 
 O navegador pode abrir a câmera ou oferecer um seletor, conforme dispositivo e
 suporte a `capture="environment"`. Há opção separada para escolher imagem existente.
-Cancelamentos e falhas de imagem não criam produto automaticamente. Não há upload
-de fotos para reconhecimento. Códigos podem ser lidos da imagem ou digitados.
+Cancelamentos e falhas de imagem não criam produto automaticamente. O OCR local não envia fotos. A ação explícita de análise pela OpenAI envia a
+foto recortada ao gateway configurado e à OpenAI. Códigos podem ser lidos da imagem ou digitados.
 Caso o catálogo não possa ser lido, a exportação das compras continua possível,
 identificada como cópia parcial sem catálogo/fotos.
 
 Nunca colocar chaves de API em JavaScript, localStorage, commits ou GitHub Pages.
-A futura integração OpenAI usará um backend autenticado e credenciais protegidas.
+A integração OpenAI usa um backend autenticado, sessão temporária em memória
+e revisão das propostas. A chave é digitada em campo transitório e enviada via HTTPS
+ao gateway escolhido; não é persistida em disco nem em armazenamento do navegador.
 GitHub Pages hospeda somente o frontend estático.
 
 ## Verificação

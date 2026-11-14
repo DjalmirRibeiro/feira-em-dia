@@ -1,13 +1,18 @@
-import { criarItem, criarPlanejado, subtotal, total, moeda, exemplos, comprado, restante, colocarPlanejado, editarCarrinho, planejarCompra, migrarEstado } from './core.js?v=7';
-import { iniciarCatalogo } from './catalog.js?v=7';
-import { nomeApresentacao } from './catalog-core.js?v=7';
+import { criarItem, criarPlanejado, subtotal, total, moeda, exemplos, comprado, restante, colocarPlanejado, editarCarrinho, planejarCompra, migrarEstado } from './core.js?v=8';
+import { iniciarCatalogo } from './catalog.js?v=8';
+import { nomeApresentacao } from './catalog-core.js?v=8';
+import {iniciarCasa} from './household-ui.js?v=8';
+import {iniciarAssistente} from './assistant-ui.js?v=8';
+import {criarCenarioCompleto} from './demo-scenario.js?v=8';
+import {validarEstadoBackup,validarCatalogoBackup,mesclarEstado,prepararBackup} from './backup-core.js?v=8';
+import {restaurarProdutosNovos} from './catalog-store.js?v=8';
 
 const $ = selector => document.querySelector(selector);
 const REAL_KEY = 'feira-em-dia:v1';
 const DEMO_KEY = 'feira-em-dia:demo:v2';
 const MODE_KEY = 'feira-em-dia:mode';
 const hoje = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-const novoEstado = () => ({ version: 2, cart: [], planned: [], history: [], market: '', date: hoje(), demo: false });
+const novoEstado = () => ({ version: 3, cart: [], planned: [], history: [], inventory:{lots:[],moves:[]},budgets:{},executedCommands:[],market: '', date: hoje(), demo: false });
 const uid = () => crypto.randomUUID();
 const quantidade = value => value.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
 let storageFailed = false;
@@ -19,7 +24,7 @@ function load(key) {
     if (!raw) return novoEstado();
     const saved = JSON.parse(raw);
     if (saved.version === 1 && !localStorage.getItem(`${REAL_KEY}:backup-v1`)) localStorage.setItem(`${REAL_KEY}:backup-v1`, raw);
-    return migrarEstado(saved, hoje());
+    return validarEstadoBackup(saved,hoje());
   } catch { storageFailed = true; return novoEstado(); }
 }
 let state = load(demoMode ? DEMO_KEY : REAL_KEY);
@@ -28,6 +33,9 @@ let currentBucket = 'planned';
 let editBucket = 'planned';
 let toastTimer;
 let catalogUI;
+let householdUI,assistantUI,appRevision=0;
+const effectiveToday=()=>demoMode&&state.demoDate?state.demoDate:hoje();
+function commit(next){const previous=state;state=next;if(!save()){state=previous;throw new Error('Não foi possível gravar a alteração. Os dados anteriores foram preservados.');}render();}
 let catalogProducts = new Map();
 const planPhotoUrls = [], cartPhotoUrls = [];
 function clearPhotos(urls) { while (urls.length) URL.revokeObjectURL(urls.pop()); }
@@ -59,8 +67,8 @@ function show(view) {
   currentView = view;
   document.querySelectorAll('.view').forEach(el => { el.hidden = el.id !== `view-${view}`; });
   document.querySelectorAll('[data-view]').forEach(el => {
-    el.classList.toggle('active', el.dataset.view === view);
-    if (el.dataset.view === view) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current');
+    const active=el.dataset.view===view||view==='previsoes'&&el.dataset.view==='estoque';el.classList.toggle('active',active);
+    if (active) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current');
   });
   $('#shopping-bar').hidden = view !== 'carrinho';
   document.body.classList.toggle('shopping-active', view === 'carrinho');
@@ -172,10 +180,11 @@ function renderHistory() {
       state.planned = planejarCompra(purchase, uid); state.cart = []; state.market = purchase.market;
       state.date = hoje(); state.demo = demoMode; save(); render(); bucket('planned'); show('carrinho');
       notify('Nova lista criada. O carrinho começa vazio; confira os preços ao pegar os produtos.');
-    })); history.append(card);
+    })); card.append(action('Revisar entrada no estoque →',()=>householdUI.importPurchase(purchase)));history.append(card);
   }
 }
 function render() {
+  appRevision++;
   const sum = total(state.cart), pending = state.planned.filter(plan => restante(plan, state.cart) > 0);
   const expected = pending.filter(plan => plan.priceCents != null).reduce((sum, plan) => sum + Math.round(plan.priceCents * restante(plan, state.cart)), 0);
   const unknown = pending.filter(plan => plan.priceCents == null).length;
@@ -194,11 +203,12 @@ function render() {
   $('#leave-demo').hidden = !demoMode;
   $('#demo-mode-banner').hidden = !demoMode;
   $('#demo').textContent = demoMode ? 'Reiniciar exemplos' : 'Experimentar com exemplos';
-  const month = demoMode ? [] : state.history.filter(p => p.date.startsWith(hoje().slice(0, 7)) && !p.demo);
+  const month = state.history.filter(p => p.date.startsWith(effectiveToday().slice(0, 7)) && p.date<=effectiveToday()&&(demoMode||!p.demo));
   $('#month-total').textContent = moeda(month.reduce((sum, purchase) => sum + total(purchase.items), 0));
-  $('#month-count').textContent = demoMode ? 'Indicadores reais não são alterados no modo de exemplo' : `${month.length} compras reais registradas neste mês`;
-  $('#history-count').textContent = demoMode ? '—' : state.history.filter(p => !p.demo).length;
-  renderPlans(); renderCart(); renderHistory(); bucket(currentBucket); catalogUI?.refresh();
+  $('#month-count').textContent = `${month.length} compras ${demoMode?'fictícias':'reais'} neste mês`;
+  $('#history-count').textContent = state.history.filter(p=>demoMode||!p.demo).length;
+  $('#today').textContent=new Date(`${effectiveToday()}T12:00:00`).toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})+(demoMode?' · simulado':'');
+  renderPlans(); renderCart(); renderHistory(); bucket(currentBucket); catalogUI?.refresh();householdUI?.render();
 }
 
 document.querySelectorAll('[data-view]').forEach(el => el.addEventListener('click', () => show(el.dataset.view)));
@@ -256,12 +266,12 @@ function leaveDemo() {
 $('#leave-demo').addEventListener('click', leaveDemo); $('#leave-demo-global').addEventListener('click', leaveDemo);
 $('#finish').addEventListener('click', async () => {
   if (!state.cart.length) return;
+  if(state.date>effectiveToday())return notify('A compra não pode ser concluída com data futura. Confira a data.');
   const pending = state.planned.filter(p => restante(p, state.cart) > 0).length;
   const message = `Concluir a compra de ${moeda(total(state.cart))}?${pending ? ` Há ${pending} produtos pendentes. Eles ficarão registrados no histórico para o próximo planejamento.` : ''}${demoMode || state.demo ? ' Esta compra é uma demonstração.' : ''}`;
   if (!(await confirmar(message))) return;
-  state.history.push({ id: uid(), date: state.date, market: state.market, demo: demoMode || state.demo, items: state.cart.map(i => ({ ...i })), planned: state.planned.map(p => ({ ...p })) });
-  state.cart = []; state.planned = []; state.demo = demoMode;
-  const saved = save(); render(); show('historico'); if (saved) notify('Compra salva. A lista original e os preços pagos foram preservados no histórico.');
+  const purchase={id:uid(),date:state.date,market:state.market,demo:demoMode||state.demo,items:state.cart.map(i=>({...i,category:i.category||catalogProducts.get(i.catalogId)?.category||'Outros'})),planned:state.planned.map(p=>({...p}))};
+  try{commit({...state,history:[...state.history,purchase],cart:[],planned:[],demo:demoMode});show('historico');notify('Compra salva. A lista e os preços pagos foram preservados.');if($('#purchase-to-stock').checked)householdUI.importPurchase(purchase);}catch(error){notify(error.message);}
 });
 $('#export').addEventListener('click', async () => {
   $('#export').disabled = $('#export-mobile').disabled = true;
@@ -271,9 +281,13 @@ $('#export').addEventListener('click', async () => {
     try { catalog = await catalogUI.exportData(); }
     catch (error) { catalog = null; catalogWarning = error.message; }
     if (scope !== demoMode) throw new Error('A base mudou durante a exportação. Tente novamente.');
-    const url = URL.createObjectURL(new Blob([JSON.stringify({ ...snapshot, catalog, ...(catalogWarning ? { catalogWarning } : {}), exportedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' }));
+    const includePhotos=$('#backup-photos').checked;if(!includePhotos&&catalog)catalog=catalog.map(p=>({...p,photo:null,labelPhoto:null}));
+    const backup=prepararBackup(snapshot,catalog,$('#backup-health').checked);
+    const file=new Blob([JSON.stringify({...backup,photosExcluded:!includePhotos,backupScope:scope?'demo':'real',...(catalogWarning?{catalogWarning}:{}),exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});
+    if(file.size>80*1024*1024)throw new Error('O backup ultrapassa 80 MB. Desmarque “Incluir fotos” para exportar os registros sem imagens.');
+    const url = URL.createObjectURL(file);
     const a = node('a'); a.href = url; a.download = `feira-em-dia-${scope ? 'exemplos-' : ''}${hoje()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 5000);
-    notify(catalogWarning ? `Cópia parcial: compras exportadas, mas catálogo e fotos não puderam ser lidos. ${catalogWarning}` : 'Cópia gerada com compras, catálogo e fotos da base aberta.');
+    notify(catalogWarning ? `Cópia parcial: catálogo e fotos não puderam ser lidos. ${catalogWarning}` : `Cópia gerada com compras, estoque, catálogo e fotos.${backup.healthExcluded?' Registros de Saúde foram omitidos; os totais do backup consideram apenas os itens incluídos.':''}`);
   } catch (error) { notify(`Exportação não concluída: ${error.message}`); }
   finally { $('#export').disabled = $('#export-mobile').disabled = false; }
 });
@@ -288,7 +302,9 @@ $('#today').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'lon
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => notify('Acesso offline indisponível neste navegador.'));
 catalogUI = iniciarCatalogo({
   getScope: () => demoMode ? 'demo' : 'real', notify,
-  onCatalogChanged: products => { catalogProducts = new Map(products.map(product => [product.id, product])); renderPlans(); renderCart(); },
+  onCatalogChanged: products => {appRevision++; catalogProducts = new Map(products.map(product => [product.id, product])); renderPlans(); renderCart();householdUI?.render(); },
+  aiAvailable:()=>assistantUI?.isConnected()||false,
+  analyzeImage:blob=>assistantUI.analyzeImage(blob),
   addToList: product => { show('carrinho'); bucket('planned'); openProduct('planned', null, product); },
   async enterDemo() {
     if (!save()) return false;
@@ -303,4 +319,11 @@ catalogUI = iniciarCatalogo({
     save(); render(); bucket('planned'); show('carrinho'); notify(`Lista fictícia criada com ${products.length} produtos ilustrados. Os preços são simulados; as fotos podem ser consultadas em Produtos.`);
   }
 });
+householdUI=iniciarCasa({state:()=>state,products:()=>[...catalogProducts.values()],today:effectiveToday,isDemo:()=>demoMode,commit,show,notify});
+assistantUI=iniciarAssistente({state:()=>state,products:()=>[...catalogProducts.values()],today:effectiveToday,isDemo:()=>demoMode,revision:()=>appRevision,commit,notify,capture:()=>{show('catalogo');catalogUI.capture();},aiChanged:()=>catalogUI?.refreshAIState()});
+$('#scenario-load').addEventListener('click',async()=>{if(demoMode&&!await confirmar('Reiniciar somente compras, estoque e relógio fictícios com um cenário de seis meses? Os dados pessoais serão preservados.'))return;try{if(!save())return;demoMode=true;localStorage.setItem(MODE_KEY,'demo');state=load(DEMO_KEY);commit(criarCenarioCompleto(hoje()));await catalogUI.seedDemo();render();show('estoque');notify('Cenário fictício completo carregado. Avance o relógio para testar validade e reposição.');}catch(error){notify(error.message);}});
+$('#backup-restore').addEventListener('click',()=>$('#backup-file').click());
+$('#backup-file').addEventListener('change',async event=>{const file=event.target.files?.[0];event.target.value='';if(!file)return;try{if(file.size>80*1024*1024)throw new Error('Escolha um backup de até 80 MB.');const data=JSON.parse(await file.text());if((data.backupScope|| (data.demo?'demo':'real'))!==(demoMode?'demo':'real'))throw new Error('Ative a mesma base do backup (pessoal ou demonstração) antes de restaurar.');const incoming=validarEstadoBackup(data,effectiveToday()),products=validarCatalogoBackup(data.catalog);mesclarEstado(state,incoming,effectiveToday());if(!await confirmar(`Mesclar ${incoming.history.length} compras, ${incoming.inventory.lots.length} lotes e ${products.length} produtos na base ${demoMode?'de demonstração':'pessoal'}? Registros existentes com o mesmo identificador serão preservados.${data.healthExcluded?' Este arquivo não inclui dados de Saúde.':''}`))return;
+  const next=mesclarEstado(state,incoming,effectiveToday());let created=0;try{created=await restaurarProdutosNovos(demoMode?'demo':'real',products);commit(next);}catch(error){await catalogUI.refresh(true);throw new Error(`${error.message}${created?' Produtos novos foram importados, mas a restauração das compras não foi concluída.':''}`);}await catalogUI.refresh(true);$('#backup-status').textContent='Backup mesclado. Registros existentes foram preservados e fotos novas foram recuperadas.';notify('Restauração concluída.');
+}catch(error){$('#backup-status').textContent=`Restauração não concluída: ${error.message}`;notify(error.message);}});
 render(); if (storageFailed) notify('Não foi possível recuperar os dados locais. Os registros anteriores não serão sobrescritos.');

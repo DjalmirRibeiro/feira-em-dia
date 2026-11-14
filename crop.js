@@ -1,5 +1,5 @@
-import { limitarRecorte, recorteEmPixels } from './crop-core.js?v=7';
-import { prepararFoto } from './catalog-store.js?v=7';
+import { limitarRecorte, recorteEmPixels } from './crop-core.js?v=8';
+import { prepararFoto } from './catalog-store.js?v=8';
 
 export function criarRecortador() {
   const $ = id => document.getElementById(id), dialog = $('crop-dialog'), canvas = $('crop-canvas'), selection = $('crop-selection');

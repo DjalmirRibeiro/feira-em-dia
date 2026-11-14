@@ -218,3 +218,22 @@ dialog{max-height:calc(100dvh - 40px);overflow-y:auto}
 #cat-read-text{width:100%;padding:12px;resize:vertical;font:14px/1.6 monospace;border-radius:8px;border:1px solid #d9ccdf;background:#fff}
 .photo-credit a{color:#80569a;text-decoration:underline}
 @media(max-width:760px){#crop-dialog{padding:20px 16px}.crop-controls{bottom:-20px;flex-wrap:wrap}.crop-controls>.button{flex:1;font-size:15px;padding:12px}.catalog-tools>.button{width:100%}.recognition-panel{padding:15px}#cat-read-price{max-width:100%}}.plan-product{display:flex;gap:14px;align-items:flex-start;min-width:0}.plan-product>div{min-width:0}.item-thumbnail{width:64px;height:64px;object-fit:contain;flex-shrink:0;border:1px solid var(--line);border-radius:10px;background:#fff}.item-row .item-thumbnail{width:35px;height:40px}
+/* Rotina da casa: estoque, planejamento, gastos e assistente. */
+.demo-launch,.demo-clock{margin:24px 0}.demo-launch h2{font-size:24px}.demo-launch p,.demo-clock{font-size:16px;line-height:1.7}
+#view-estoque .panel h2,#view-previsoes .panel h2,#view-gastos .panel h2{font-size:22px;line-height:1.4;overflow-wrap:anywhere}
+.stock-card p,#forecast-list p,#view-gastos .panel p{font-size:16px;line-height:1.7;color:#706376}
+.stock-balance{font-size:30px;line-height:1.4;display:block;margin:12px 0;letter-spacing:-.5px}
+.stock-card .expiry-warning{color:#a03d37;font-weight:650}.movement-row,.comparison-row{border-top:1px solid var(--line);padding:16px 0}.movement-row p{font-size:15px;line-height:1.7;overflow-wrap:anywhere}
+.import-row{margin:18px 0;display:grid;gap:14px}.import-row .check-label{font-size:16px;line-height:1.6}
+#stock-import-dialog{max-width:640px}#stock-entry-dialog,#stock-move-dialog{max-width:540px}
+#stock-entry-form label,#stock-move-form label,#stock-import-form label,#assistant-form label,#ai-connect-form label,#budget-form label{font-size:15px;line-height:1.6}
+#stock-entry-form input,#stock-entry-form select,#stock-move-form input,#stock-move-form select,#assistant-form textarea,#ai-connect-form input{font-size:16px;min-height:48px}
+#assistant-form textarea{padding:14px;border:1px solid #dfd1e0;border-radius:12px;width:100%;font-family:inherit;line-height:1.7;resize:vertical}
+#view-gastos>.panel,#view-assistente>.panel,#view-estoque>details{margin:22px 0}
+#view-gastos .stat{display:flex}#view-gastos .stat strong{font-size:26px;overflow-wrap:anywhere;line-height:1.5}#view-gastos .stat>span{font-size:15px}
+#budget-progress{width:100%;height:20px;accent-color:#9972b6}.chart-row{display:grid;grid-template-columns:75px minmax(0,1fr) 110px;gap:12px;align-items:center;font-size:14px;margin:18px 0}.chart-row progress{width:100%;accent-color:#b9a0e8;height:20px}.chart-row strong{text-align:right}
+.comparison-row p{margin:8px 0}.comparison-row small{font-size:14px;color:#706376}
+.assistant-answer{white-space:pre-wrap;font-size:17px;line-height:1.8;padding:20px;background:#f4edf9;border-radius:14px;overflow-wrap:anywhere}.assistant-answer:empty{display:none}.assistant-examples{display:flex;gap:8px 18px;flex-wrap:wrap}.assistant-examples .text-button{font-size:15px;min-height:44px}
+#assistant-action{margin-top:18px;background:#fff8ed}#assistant-choice label{font-size:16px}#ai-status,#voice-status{font-size:15px;line-height:1.7;overflow-wrap:anywhere}
+#view-assistente summary,#view-estoque summary{font-size:17px;line-height:1.7;min-height:44px;cursor:pointer}#view-assistente .check-label{font-size:15px;margin:14px 0}
+@media(max-width:760px){nav{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.nav-button,.nav-button:last-child{position:relative;display:flex;flex-direction:column;text-align:center;justify-content:center;gap:4px;min-height:76px;padding:8px 4px;font-size:14px;line-height:1.35}.nav-button>span:first-child{font-size:23px}.badge{position:absolute;right:5px;top:4px;margin:0;font-size:12px;padding:1px 5px}.chart-row{grid-template-columns:65px minmax(0,1fr);font-size:14px;gap:10px}.chart-row strong{grid-column:2;text-align:left}.assistant-answer{font-size:17px;padding:18px}.assistant-examples{display:grid;grid-template-columns:1fr 1fr}.demo-clock .plan-actions{gap:6px 14px}#stock-import-dialog,#stock-entry-dialog,#stock-move-dialog{padding:25px 18px}.stock-balance{font-size:29px}#view-gastos .stat strong{font-size:28px}}

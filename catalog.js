@@ -1,8 +1,8 @@
-import { moeda } from './core.js?v=7';
-import { CATEGORIAS, validarProduto, filtrarProdutos, nomeApresentacao, produtosExemplo } from './catalog-core.js?v=7';
-import { listarProdutos, salvarProduto, semearExemplos, prepararFoto, fotoParaBackup } from './catalog-store.js?v=7';
-import { criarRecortador } from './crop.js?v=7';
-import { extrairEtiqueta } from './recognition-core.js?v=7';
+import { moeda } from './core.js?v=8';
+import { CATEGORIAS, validarProduto, filtrarProdutos, nomeApresentacao, produtosExemplo } from './catalog-core.js?v=8';
+import { listarProdutos, salvarProduto, semearExemplos, prepararFoto, fotoParaBackup } from './catalog-store.js?v=8';
+import { criarRecortador } from './crop.js?v=8';
+import { extrairEtiqueta } from './recognition-core.js?v=8';
 
 export function iniciarCatalogo(host) {
   const $ = selector => document.querySelector(selector);
@@ -87,6 +87,7 @@ export function iniciarCatalogo(host) {
       image.hidden = !draft?.[kind]; remove.hidden = !draft?.[kind]; image.removeAttribute('src');
       $(kind === 'photo' ? '#cat-crop-photo' : '#cat-crop-label').hidden = !draft?.[kind];
       const readButton = $(kind === 'photo' ? '#cat-read-photo' : '#cat-read-label'); readButton.hidden = !draft?.[kind]; readButton.disabled = reading || processing > 0;
+      const aiButton=$(kind==='photo'?'#cat-ai-photo':'#cat-ai-label');aiButton.hidden=!draft?.[kind]||!host.aiAvailable?.();aiButton.disabled=reading||processing>0;
       if (draft?.[kind]) { image.src = URL.createObjectURL(draft[kind]); editorUrls.push(image.src); }
     }
     $('#cat-photo-status').textContent = processing ? 'Preparando foto…' : draft?.photo || draft?.labelPhoto ? 'Foto preparada. Toque em Salvar produto para guardar.' : 'Fotos opcionais. Nenhuma imagem é enviada para um servidor.';
@@ -103,6 +104,8 @@ export function iniciarCatalogo(host) {
     $('#cat-name').value = product?.name || ''; $('#cat-brand').value = product?.brand || '';
     $('#cat-presentation').value = product?.presentation || ''; $('#cat-category').value = product?.category || 'Alimentos';
     $('#cat-code').value = product?.barcode || ''; $('#cat-unit').value = product?.unit || 'un';
+    $('#cat-content-quantity').value=product?.contentQuantity==null?'':String(product.contentQuantity).replace('.',',');$('#cat-content-unit').value=product?.contentUnit||'un';
+    $('#cat-stock-content').checked=Boolean(product?.stockByContent);
     $('#cat-price').value = product?.priceCents == null ? '' : (product.priceCents / 100).toFixed(2).replace('.', ',');
     $('#cat-date').value = product?.priceDate || today(); $('#cat-store').value = product?.storeName || '';
     previews(); $('#catalog-dialog').showModal();
@@ -198,6 +201,7 @@ export function iniciarCatalogo(host) {
       finally { if (revision === editorRevision) { processing--; previews(); } }
     });
   }
+  for(const [kind,id]of [['photo','cat-ai-photo'],['labelPhoto','cat-ai-label']])$(`#${id}`).addEventListener('click',async()=>{if(!draft?.[kind]||reading||processing)return;const revision=editorRevision;processing++;previews();$('#cat-recognition').hidden=false;$('#cat-read-status').textContent='Enviando a imagem recortada ao serviço conectado e à OpenAI…';try{const product=await host.analyzeImage(draft[kind]);if(revision!==editorRevision)return;for(const [key,field]of [['name','cat-name'],['brand','cat-brand'],['presentation','cat-presentation'],['barcode','cat-code']])if(product[key]&&!manuallyEdited.has(field)&&!document.getElementById(field).value.trim())document.getElementById(field).value=product[key];if(product.priceCents!=null&&!manuallyEdited.has('cat-price')&&!$('#cat-price').value.trim()){$('#cat-price').value=(product.priceCents/100).toFixed(2).replace('.',',');$('#cat-date').value=today();}if(!manuallyEdited.has('cat-unit'))$('#cat-unit').value=product.unit;if(!manuallyEdited.has('cat-category'))$('#cat-category').value=product.category;$('#cat-read-status').textContent='Sugestões da OpenAI recebidas. Campos já preenchidos foram mantidos; revise os dados antes de salvar.';}catch(error){if(revision===editorRevision)$('#cat-read-status').textContent=error.message;}finally{if(revision===editorRevision){processing--;previews();}}});
   for (const [buttonId, inputId, kind] of [
     ['cat-take-photo', 'cat-camera', 'photo'], ['cat-choose-photo', 'cat-gallery', 'photo'],
     ['cat-take-label', 'cat-label-camera', 'labelPhoto'], ['cat-choose-label', 'cat-label-gallery', 'labelPhoto']
@@ -213,7 +217,7 @@ export function iniciarCatalogo(host) {
       if (editorScope !== host.getScope()) throw new Error('A base de dados mudou. Feche o cadastro e tente novamente.');
       const validated = validarProduto({ id: draft.id, name: $('#cat-name').value, brand: $('#cat-brand').value, presentation: $('#cat-presentation').value,
         category: $('#cat-category').value, barcode: $('#cat-code').value, unit: $('#cat-unit').value, price: $('#cat-price').value,
-        priceDate: $('#cat-date').value, storeName: $('#cat-store').value, archived: draft.archived });
+        priceDate: $('#cat-date').value, storeName: $('#cat-store').value, archived: draft.archived,contentQuantity:$('#cat-content-quantity').value,contentUnit:$('#cat-content-unit').value,stockByContent:$('#cat-stock-content').checked });
       if (validated.barcode && products.some(p => p.id !== draft.id && !p.archived && p.barcode.toLowerCase() === validated.barcode.toLowerCase())) throw new Error('Este código já está em outro produto ativo. Edite o cadastro existente ou corrija o código.');
       const product = { ...draft, ...validated, photo: draft.photo || null, labelPhoto: draft.labelPhoto || null };
       saving = true; previews(); $('#catalog-close').disabled = true;
@@ -243,6 +247,9 @@ export function iniciarCatalogo(host) {
   });
   return {
     refresh,
+    refreshAIState:()=>{if(draft)previews();},
+    capture:()=>open(null,true),
+    async seedDemo(){await semearExemplos(await examplesWithPhotos());await refresh(true);},
     async exportData() {
       const records = await listarProdutos(host.getScope());
       return Promise.all(records.map(async product => ({ ...product, photo: await fotoParaBackup(product.photo), labelPhoto: await fotoParaBackup(product.labelPhoto) })));
